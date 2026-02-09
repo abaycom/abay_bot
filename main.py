@@ -4,11 +4,11 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, CommandHandler, filters
 import google.generativeai as genai
 
-# --- መለያ ቁጥሮች (እነዚህን በትክክል ተኪ) ---
+# --- መለያ ቁጥሮች (እነዚህን በራስሽ ተኪ) ---
 GEMINI_KEY = "AIzaSyDBejOCswVeIGlUhoj0cGpGJGT6rGO16oc"
 BOT_TOKEN = "7161551829:AAHtk93KgQjTVp9ThrwhGvL_O4tZheFl8ks"
 
-# ኔትወርክ እንዳያስቸግር 'rest' የሚለውን ትራንስፖርት እንጠቀማለን
+# ኔትወርክ እንዳያስቸግር 'rest' ትራንስፖርት እንጠቀማለን
 genai.configure(api_key=GEMINI_KEY, transport='rest')
 
 # የአባይ ባህሪ መመሪያ
@@ -19,9 +19,9 @@ SYSTEM_PROMPT = (
     "መልስ ስትሰጥ ሁልጊዜ 'አንቺስ?' ወይም 'አንቺ ምን ትያለሽ?' ብለህ መጠየቅ አትርሳ። 😏"
 )
 
-# የ AI ሞዴል አወቃቀር
+# የ AI ሞዴል አወቃቀር (ስሙ እዚህ ጋር ተስተካክሏል)
 model = genai.GenerativeModel(
-    model_name='gemini-1.5-flash',
+    model_name='models/gemini-1.5-flash-latest',
     system_instruction=SYSTEM_PROMPT
 )
 
@@ -41,20 +41,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_text = update.message.text
 
-    # ለተጠቃሚው አዲስ ቻት ካስፈለገ
     if user_id not in chat_sessions:
         chat_sessions[user_id] = model.start_chat(history=[])
 
     try:
-        # AI መልስ እንዲሰጥ መጠየቅ
         response = chat_sessions[user_id].send_message(user_text)
         await update.message.reply_text(response.text)
     except Exception as e:
         print(f"Error: {e}")
-        await update.message.reply_text("ቆይ እስኪ ኤፍራታ... ኔትወርኩ ተደናቅፎብኛል! ትንሽ ቆይተሽ ሞክሪ። 🙄")
+        # ለተጠቃሚው ግልጽ መልስ ለመስጠት
+        if "404" in str(e):
+            await update.message.reply_text("የሞዴል ስም ስህተት አለ፣ አስተካክዪው! 🙄")
+        else:
+            await update.message.reply_text("ኔትወርኩ ተደናቅፎብኛል... ትንሽ ቆይተሽ ጻፊልኝ።")
 
 if __name__ == '__main__':
-    # ቦቱን ማስነሳት
     print("አባይ እየተነሳ ነው... 🚀")
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     
