@@ -6,7 +6,7 @@ import google.generativeai as genai
 
 # --- መለያ ቁጥሮች (እነዚህን በራስሽ ተኪ) ---
 GEMINI_KEY = "AIzaSyDBejOCswVeIGlUhoj0cGpGJGT6rGO16oc"
-BOT_TOKEN = "7161551829:AAHtk93KgQjTVp9ThrwhGvL_O4tZheFl8ks"
+BOT_TOKEN = "7161551829:AAHatRdHBkcREdfRawR82ltnPF-jIKO50Jo"
 
 # ኔትወርክ እንዳያስቸግር 'rest' ትራንስፖርት እንጠቀማለን
 genai.configure(api_key=GEMINI_KEY, transport='rest')
