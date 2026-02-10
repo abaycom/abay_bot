@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, Comma
 import google.generativeai as genai
 
 # --- መለያ ቁጥሮች (እነዚህን በራስሽ ተኪ) ---
-GEMINI_KEY = "AIzaSyDBejOCswVeIGlUhoj0cGpGJGT6rGO16oc"
+GEMINI_KEY = "AIzaSyD8tAH9it0rACqDRuIx5yyl387qmD8DVuU"
 BOT_TOKEN = "7161551829:AAHatRdHBkcREdfRawR82ltnPF-jIKO50Jo"
 
 # ኔትወርክ እንዳያስቸግር 'rest' ትራንስፖርት እንጠቀማለን
