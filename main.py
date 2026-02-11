@@ -1,41 +1,43 @@
-import os
+import logging
 import google.generativeai as genai
 from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
-# --- 1. መለያ ቁጥሮች (እነዚህን በጥንቃቄ ተኪ) ---
-# ማሳሰቢያ፡ ቁልፎቹን በ " " (Quotes) ውስጥ አድርጊያቸው
-GEMINI_KEY = "AIzaSyD8tAH9it0rACqDRuIx5yyl387qmD8DVuU"
-BOT_TOKEN = "5980643111:AAFWeKd2kRv-1t8NtBZycQYKvYBcwnf5G_s"
+# --- ትክክለኛ CONFIGURATION ---
+GEMINI_API_KEY = "AIzaSyD8tAH9it0rACqDRuIx5yyl387qmD8DVuU"
+TELEGRAM_TOKEN = "5980643111:AAEi8ppnPud1Z1R_-Dt1RcqnkKdCopHfDQQ"
 
-# --- 2. Gemini-ን ማስተካከል ---
-genai.configure(api_key=GEMINI_KEY)
-
-# ሞዴሉን መጥራት
+# Gemini setup
+genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# --- 3. ቦቱ መልስ የሚሰጥበት ተግባር ---
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_msg = update.message.text
-    print(f"ኤፍራታ እንዲህ አለች: {user_msg}") # በ VS Code ኮንሶል ላይ ይታያል
-    
-    try:
-        # AI መልስ እንዲሰጥ መጠየቅ
-        prompt = f"አንተ አባይ (Abay) የተባልክ የኤፍራታ ጓደኛ ነህ። መልስ ስጥ: {user_msg}"
-        response = model.generate_content(prompt)
-        
-        await update.message.reply_text(response.text)
-        
-    except Exception as e:
-        print(f"ስህተት ተፈጠረ: {e}")
-        await update.message.reply_text("አባይ ትንሽ ደክሞታል... 🙄")
+chat_histories = {}
 
-# --- 4. ቦቱን ማስነሳት ---
+# ናቲን ተጫዋች የሚያደርገው መመሪያ
+NATI_PROMPT = (
+    "አንተ ስምህ ናቲ ይባላል። በጣም ተጫዋች፣ ቀልደኛ እና ሰዎችን የምትወድ ኢትዮጵያዊ AI ነህ። "
+    "መልስህ በጣም አጭር፣ ግልጽ እና አዝናኝ መሆን አለበት። ሰዎችን ጥያቄ ጠይቅ፣ ወሬ አታስረዝም። "
+    "ልክ እንደ ቅርብ ጓደኛ አውራ። አማርኛ ብቻ ተጠቀም።"
+)
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user_text = update.message.text
+    print(f"መልእክት ደርሶኛል: {user_text}")
+
+    if user_id not in chat_histories:
+        chat_histories[user_id] = model.start_chat(history=[])
+        chat_histories[user_id].send_message(NATI_PROMPT)
+
+    try:
+        response = chat_histories[user_id].send_message(user_text)
+        await update.message.reply_text(response.text)
+    except Exception as e:
+        print(f"Error: {e}")
+        await update.message.reply_text("ወንድም ትንሽ 'Network' አስቸግሮኝ ነው! 😂")
+
 if __name__ == '__main__':
-    if GEMINI_KEY == "የአንቺ_API_KEY_እዚህ_ይግባ" or BOT_TOKEN == "የአንቺ_BOT_TOKEN_እዚህ_ይግባ":
-        print("ስህተት: እባክሽ መጀመሪያ API Key እና Token አስገቢ!")
-    else:
-        print("አባይ በ Online VS Code ተነስቷል... 🚀")
-        app = ApplicationBuilder().token(BOT_TOKEN).build()
-        app.add_handler(MessageHandler(filters.TEXT, reply))
-        app.run_polling()
+    print("ናቲ በይፋ ስራ ጀምሯል... ቴሌግራም ላይ ሄደህ አውራው!")
+    bot_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    bot_app.run_polling()
