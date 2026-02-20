@@ -1,40 +1,64 @@
 import os
-import requests
-from flask import Flask, request, jsonify, render_template_string
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+import google.generativeai as genai
 
-# 1. API Setup (Key-ዩን Render ላይ በ Secrets ውስጥ እናስገባዋለን)
-API_KEY = os.environ.get("GEMINI_API_KEY")
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# --- ቁልፎች ---
+# Replit ላይ ከሆንክ 'Secrets' (🔒 icon) ውስጥ አስገባቸው
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN', 'የእርስዎ_ቶከን')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'የእርስዎ_API_ቁልፍ')
 
-# አባይ በአክብሮት እና በአራዳነት እንዲመልስ
-SYSTEM_INSTRUCTION = "አንተ ስምህ አባይ ይባላል። ኢትዮጵያዊ አራዳ እና የፍቅር አማካሪ ነህ። የምታወራው በአማርኛ ብቻ ነው። ለሰዎች መልካም አመለካከት ይኑርህ።"
+# Gemini ኮንፊገሬሽን
+genai.configure(api_key=GEMINI_API_KEY)
 
-app = Flask(__name__)
+# 404ን ለማስወገድ ሞዴሉን በዚህ መልኩ እንጥራው
+model = genai.GenerativeModel(
+    model_name="models/gemini-1.5-flash"  # 'models/' የሚለውን መጨመር 404ን ይከላከላል
+)
 
-@app.route('/')
-def home():
-    return "አባይ AI አሁን በ Render ላይ በሰላም እየተንሳፈፈ ነው! 🌊"
+# የአባይ ጠባይ
+SYSTEM_PROMPT = (
+    "አንተ ስምህ አባይ ነው። በጣም ቀልደኛ እና እንደ ሰው የምታወራ ኢትዮጵያዊ ነህ። "
+    "ስለ efrata ካልተጠየቅክም በወሬህ መሃል እሷን እያነሳህ አወድሳት። "
+    "አነጋገርህ 'ኧረ ተው'፣ 'እንዴ'፣ 'ምነው በናትህ' የሚሉ ቃላትን ይጨምር።"
+)
 
-@app.route('/chat', methods=['POST'])
-def chat():
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = update.message.text
+    
     try:
-        user_msg = request.json.get("message", "")
-        payload = {
-            "contents": [{"parts": [{"text": f"{SYSTEM_INSTRUCTION}\n\nተጠቃሚ: {user_msg}\nአባይ:"}]}]
-        }
-        headers = {'Content-Type': 'application/json'}
-        response = requests.post(URL, headers=headers, json=payload)
-        result = response.json()
+        # ጥያቄውን ማዘጋጀት
+        prompt = f"{SYSTEM_PROMPT}\n\nተጠቃሚው እንዲህ ይላል፦ {user_text}"
         
-        if 'candidates' in result:
-            reply = result['candidates'][0]['content']['parts'][0]['text']
-            return jsonify({"reply": reply})
+        # መልስ ማመንጨት
+        response = model.generate_content(prompt)
+        
+        if response.text:
+            await update.message.reply_text(response.text)
         else:
-            return jsonify({"reply": "አባይ ትንሽ እያሰበ ነው... ቆይተሽ ሞክሪኝ።"})
-    except:
-        return jsonify({"reply": "ኔትወርክ ተቋረጠ! 🔄"})
+            await update.message.reply_text("አባይ ወሬው ጠፋበት! በድጋሚ ጠይቀኝ።")
+            
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error Detail: {error_msg}")
+        
+        if "404" in error_msg:
+            await update.message.reply_text("404 Error: አባይ መኖሪያ ቤቱ አልታወቅ አለ! (Model Not Found)")
+        elif "429" in error_msg:
+            await update.message.reply_text("አባይ ደከመው፤ ብዙ አወራን። ትንሽ ቆይተን እንቀጥል።")
+        else:
+            await update.message.reply_text(f"አባይ ችግር ገጠመው፦ {error_msg[:50]}")
 
-if __name__ == "__main__":
-    # Render የራሱን Port ስለሚሰጥ በ os.environ እናነበዋለን
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == '__main__':
+    # ሎግ ለማየት
+    logging.basicConfig(level=logging.INFO)
+    
+    try:
+        app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+        app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+        
+        print("አባይ Replit ላይ ስራ ጀምሯል...")
+        app.run_polling()
+    except Exception as e:
+        print(f"Bot failed to start: {e}")
