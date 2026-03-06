@@ -3,148 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keno Pro Betting</title>
+    <title>Keno Pro - Red Edition</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --red: #e60000; --dark: #121212; --yellow: #ffcc00; --glass: rgba(255, 255, 255, 0.1); }
-        body { background: var(--red); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
-        
-        /* Glassmorphism Header */
-        .top-nav { background: var(--glass); backdrop-filter: blur(10px); padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.2); }
-        .balance-chip { background: var(--dark); padding: 8px 15px; border-radius: 20px; border: 1px solid var(--yellow); font-weight: bold; color: var(--yellow); }
+        :root { --red: #d30000; --dark: #1a1a1a; --yellow: #ffcc00; --white: #ffffff; }
+        body { background: var(--red); color: var(--white); font-family: 'Arial', sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
 
-        /* Animation Tube (ምስል 1 ላይ እንዳለው) */
-        .draw-section { height: 180px; display: flex; justify-content: center; align-items: center; background: radial-gradient(circle, #333, #000); margin: 10px; border-radius: 20px; border: 4px solid #444; position: relative; }
-        .tube-glass { width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 2px solid #666; display: flex; align-items: center; justify-content: center; position: relative; }
-        .big-ball { width: 100px; height: 100px; background: radial-gradient(circle at 30% 30%, #fff, var(--yellow), #b8860b); border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 3rem; color: black; font-weight: 900; box-shadow: 0 0 30px var(--yellow); animation: ballEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        
+        /* Header Area */
+        .header { background: rgba(0,0,0,0.5); padding: 10px; display: flex; justify-content: space-around; align-items: center; border-bottom: 2px solid var(--yellow); }
+        .balance-box { background: var(--dark); padding: 5px 15px; border-radius: 20px; color: var(--yellow); border: 1px solid var(--yellow); font-weight: bold; }
+        #timer { font-size: 1.5rem; font-weight: bold; color: var(--yellow); }
+
+        /* Animation Section (Tube and Big Ball) */
+        .draw-container { height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #333, #000); margin: 10px; border-radius: 15px; border: 3px solid #444; position: relative; }
+        .big-ball { width: 90px; height: 90px; background: radial-gradient(circle at 30% 30%, #fff, var(--yellow), #b8860b); border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 2.5rem; color: #000; font-weight: 900; box-shadow: 0 0 20px var(--yellow); animation: ballEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes ballEnter { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1) rotate(0); } }
 
-        /* Keno Grid */
-        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; margin: 10px; }
-        .num { aspect-ratio: 1/1; background: var(--dark); display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.9rem; cursor: pointer; border: 1px solid #333; transition: 0.2s; }
-        .num.selected { background: #007bff; border-color: white; transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .num.hit { background: var(--yellow); color: black; font-weight: bold; animation: glow 1s infinite alternate; }
-        
-        /* Action Panel */
-        .action-panel { background: var(--dark); padding: 20px; border-radius: 30px 30px 0 0; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
-        .bet-input-wrapper { display: flex; gap: 10px; margin-bottom: 15px; }
-        input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #222; color: white; text-align: center; font-size: 1.1rem; }
-        .btn { padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-bet { background: var(--yellow); color: black; flex: 2; font-size: 1.1rem; }
-        .btn-wallet { background: #28a745; color: white; width: 100%; margin-top: 10px; }
-        .btn:disabled { opacity: 0.5; filter: grayscale(1); }
+        /* Keno Grid (1-80) */
+        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 10px; max-width: 450px; margin: auto; }
+        .num { aspect-ratio: 1/1; background: var(--dark); display: flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; border: 1px solid #333; }
+        .num.selected { background: #0056b3; border: 2px solid white; transform: scale(1.05); }
+        .num.hit { background: var(--yellow); color: black; font-weight: bold; box-shadow: 0 0 10px var(--yellow); }
 
-        /* Modal (Deposit/Withdraw) */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; padding: 20px; }
-        .modal-content { background: #222; padding: 20px; border-radius: 20px; border: 1px solid var(--yellow); }
+        /* Betting & Wallet Panel */
+        .action-panel { background: var(--dark); padding: 20px; border-radius: 25px 25px 0 0; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
+        .bet-input-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        input[type="number"], input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #333; color: white; text-align: center; }
+        .btn { padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-bet { background: var(--yellow); color: black; flex: 2; font-size: 1rem; }
+        .btn-wallet { background: #28a745; color: white; width: 100%; }
+
+        /* Wallet Modal (Pop-up) */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #222; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; border: 1px solid var(--yellow); }
+        .tab-btn { flex: 1; padding: 10px; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="top-nav">
-        <div id="game-info">DRAW <b id="draw-id">#--</b></div>
-        <div id="timer" style="color: var(--yellow); font-size: 1.2rem;">01:30</div>
-        <div class="balance-chip"><span id="balance-val">0.00</span> ETB</div>
+    <div class="header">
+        <div id="status">ቁጥር ይምረጡ</div>
+        <div id="timer">01:30</div>
+        <div class="balance-box"><span id="balance-val">0.00</span> ETB</div>
     </div>
 
-    <div class="draw-section">
-        <div class="tube-glass">
-            <div id="big-ball" class="big-ball">?</div>
-        </div>
-        <div style="position: absolute; right: 20px; top: 10px; font-weight: bold;" id="count-display">0/20</div>
+    <div class="draw-container">
+        <div id="big-ball" class="big-ball">?</div>
+        <div style="margin-top: 10px; font-size: 0.8rem;" id="draw-count">0/20</div>
     </div>
 
     <div class="grid" id="keno-grid"></div>
 
     <div class="action-panel">
-        <div class="bet-input-wrapper">
-            <input type="number" id="bet-amt" placeholder="መጠን" value="10">
-            <button class="btn btn-bet" id="bet-btn" onclick="placeBet()">አሁኑኑ ውራረድ</button>
+        <div class="bet-input-row">
+            <input type="number" id="bet-amt" value="10" min="1">
+            <button class="btn btn-bet" onclick="placeBet()">አሁኑኑ ውራረድ</button>
         </div>
-        <button class="btn btn-wallet" onclick="toggleModal(true)">Wallet (Deposit / Withdraw)</button>
+        <button class="btn btn-wallet" onclick="toggleModal(true)">የገንዘብ ቦርሳ (Wallet)</button>
     </div>
 
     <div id="wallet-modal" class="modal">
-    <div class="modal-content" style="max-width: 400px; width: 90%;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-            <button onclick="switchTab('deposit')" id="dep-tab" style="flex:1; padding: 10px; background: var(--yellow); border:none; font-weight:bold;">DEPOSIT</button>
-            <button onclick="switchTab('withdraw')" id="wit-tab" style="flex:1; padding: 10px; background: #333; color:white; border:none; font-weight:bold;">WITHDRAW</button>
-        </div>
-
-        <div id="deposit-sec">
-            <p style="font-size: 0.9rem; color: #ccc;">ቢያንስ 50 ብር ማስገባት ይችላሉ።</p>
-            <input type="number" id="dep-amount" placeholder="የብር መጠን (ሚኒመም 50)" min="50" style="width:100%; margin-bottom:10px;">
-            <div style="background: #111; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid var(--yellow);">
-                <small>በቴሌብር ወደዚህ ቁጥር ይላኩ:</small><br>
-                <strong style="font-size: 1.2rem; color: var(--yellow);">0909090909</strong>
+        <div class="modal-content">
+            <div style="display: flex; gap: 5px; margin-bottom: 20px;">
+                <button class="tab-btn" id="dep-tab" onclick="switchTab('deposit')" style="background: var(--yellow);">DEPOSIT</button>
+                <button class="tab-btn" id="wit-tab" onclick="switchTab('withdraw')" style="background: #333; color: white;">WITHDRAW</button>
             </div>
-            <button class="btn" style="background: #007bff; width: 100%; color: white;" onclick="sendToBot('deposit')">የደረሰኝ Screenshot ላክ</button>
-        </div>
 
-        <div id="withdraw-sec" style="display: none;">
-            <p style="font-size: 0.9rem; color: #ccc;">ቢያንስ 100 ብር ማውጣት ይችላሉ።</p>
-            <input type="number" id="wit-amount" placeholder="የብር መጠን (ሚኒመም 100)" min="100" style="width:100%; margin-bottom:10px;">
-            <input type="text" id="wit-account" placeholder="የቴሌብር አካውንት (09...)" style="width:100%; margin-bottom:15px;">
-            <button class="btn" style="background: #28a745; width: 100%; color: white;" onclick="sendToBot('withdraw')">የመውጫ ጥያቄ ላክ</button>
-        </div>
+            <div id="deposit-sec">
+                <p>ቢያንስ 50 ብር ያስገቡ</p>
+                <input type="number" id="dep-amt" placeholder="የብር መጠን" style="width: 100%; margin-bottom: 10px;">
+                <div style="background: #111; padding: 15px; border-radius: 10px; border-left: 5px solid var(--yellow); margin-bottom: 15px;">
+                    <small>በቴሌብር ወደዚህ ቁጥር ይላኩ:</small><br>
+                    <strong style="font-size: 1.2rem; color: var(--yellow);">0909090909</strong>
+                </div>
+                <button class="btn" style="background: #007bff; width: 100%; color: white;" onclick="closeAndPhoto()">የደረሰኝ Screenshot ላክ</button>
+            </div>
 
-        <button class="btn" style="margin-top: 15px; width: 100%; background: #444; color: white;" onclick="toggleModal(false)">ተመለስ</button>
-    </div>
-</div>
+            <div id="withdraw-sec" style="display: none;">
+                <p>ቢያንስ 100 ብር ማውጣት ይችላሉ</p>
+                <input type="number" id="wit-amt" placeholder="የብር መጠን" style="width: 100%; margin-bottom: 10px;">
+                <input type="text" id="wit-acc" placeholder="የቴሌብር ቁጥር (09...)" style="width: 100%; margin-bottom: 15px;">
+                <button class="btn" style="background: #28a745; width: 100%; color: white;" onclick="sendWithdraw()">የመውጫ ጥያቄ ላክ</button>
+            </div>
 
+            <button class="btn" style="width: 100%; margin-top: 15px; background: #444; color: white;" onclick="toggleModal(false)">ዝጋ</button>
         </div>
     </div>
 
     <script>
-        const socket = io("https://github.com/abaycom/abay_bot/blob/main/server.js");
+        // ሰርቨር ግንኙነት (Render ሊንክህን እዚህ አስገባ)
+        const socket = io("https://keno-api.onrender.com");
         const tele = window.Telegram.WebApp;
         tele.expand();
 
-        let selected = [];
+        let selectedNumbers = [];
         let isDrawing = false;
 
-        // Grid መፍጠር
+        // 1. Grid መፍጠር
+        const grid = document.getElementById('keno-grid');
         for (let i = 1; i <= 80; i++) {
-            const d = document.createElement('div');
-            d.className = 'num'; d.id = `n-${i}`; d.innerText = i;
-            d.onclick = () => {
+            const div = document.createElement('div');
+            div.className = 'num'; div.id = `n-${i}`; div.innerText = i;
+            div.onclick = () => {
                 if(isDrawing) return;
-                if(selected.includes(i)) {
-                    selected = selected.filter(x => x !== i); d.classList.remove('selected');
-                } else if(selected.length < 10) {
-                    selected.push(i); d.classList.add('selected');
+                if(selectedNumbers.includes(i)) {
+                    selectedNumbers = selectedNumbers.filter(n => n !== i); div.classList.remove('selected');
+                } else if(selectedNumbers.length < 10) {
+                    selectedNumbers.push(i); div.classList.add('selected');
                 }
             };
-            document.getElementById('keno-grid').appendChild(d);
+            grid.appendChild(div);
         }
 
-        socket.on('gameUpdate', data => {
+        // 2. ከሰርቨር የሚመጡ መረጃዎች
+        socket.on('gameUpdate', (data) => {
             document.getElementById('timer').innerText = data.timer;
+            document.getElementById('status').innerText = data.status;
             if(data.status === "DRAWING") {
                 isDrawing = true;
-                document.getElementById('bet-btn').disabled = true;
             } else {
+                if(isDrawing) resetGameUI();
                 isDrawing = false;
-                document.getElementById('bet-btn').disabled = false;
-                resetBoard();
             }
         });
 
-        socket.on('drawResult', nums => {
+        socket.on('drawResult', (winningNums) => {
             let i = 0;
             const interval = setInterval(() => {
-                if(i < nums.length) {
-                    showBigBall(nums[i]);
-                    document.getElementById(`n-${nums[i]}`).classList.add('hit');
-                    document.getElementById('count-display').innerText = `${i+1}/20`;
+                if(i < winningNums.length) {
+                    const num = winningNums[i];
+                    showBallAnimation(num);
+                    document.getElementById(`n-${num}`).classList.add('hit');
+                    document.getElementById('draw-count').innerText = `${i+1}/20`;
                     i++;
                 } else { clearInterval(interval); }
             }, 1000);
         });
 
-        function showBigBall(val) {
+        // 3. Functions
+        function showBallAnimation(val) {
             const ball = document.getElementById('big-ball');
             ball.style.display = 'none';
             setTimeout(() => {
@@ -154,25 +152,56 @@
             }, 50);
         }
 
-        function resetBoard() {
+        function resetGameUI() {
             document.querySelectorAll('.num').forEach(n => n.classList.remove('hit'));
             document.getElementById('big-ball').style.display = 'none';
-            document.getElementById('count-display').innerText = `0/20`;
+            document.getElementById('draw-count').innerText = "0/20";
         }
 
         function placeBet() {
             const amt = document.getElementById('bet-amt').value;
-            if(selected.length < 1) return alert("ቢያንስ 1 ቁጥር ይምረጡ");
+            if(selectedNumbers.length < 1) return alert("ቢያንስ 1 ቁጥር ይምረጡ");
             socket.emit('placeBet', {
                 userId: tele.initDataUnsafe.user.id,
-                numbers: selected,
+                numbers: selectedNumbers,
                 amount: amt
             });
-            tele.showConfirm("ውርርድዎ ተመዝግቧል!");
+            alert("ውርርድ ተመዝግቧል!");
         }
 
-        function toggleModal(show) {
-            document.getElementById('wallet-modal').style.display = show ? 'flex' : 'none';
+        // 4. Wallet Logic
+        function toggleModal(show) { document.getElementById('wallet-modal').style.display = show ? 'flex' : 'none'; }
+
+        function switchTab(type) {
+            const isDep = type === 'deposit';
+            document.getElementById('deposit-sec').style.display = isDep ? 'block' : 'none';
+            document.getElementById('withdraw-sec').style.display = isDep ? 'none' : 'block';
+            document.getElementById('dep-tab').style.background = isDep ? 'var(--yellow)' : '#333';
+            document.getElementById('wit-tab').style.background = isDep ? '#333' : 'var(--yellow)';
+            document.getElementById('wit-tab').style.color = isDep ? 'white' : 'black';
+        }
+
+        function closeAndPhoto() {
+            const amt = document.getElementById('dep-amt').value;
+            if(amt < 50) return alert("ቢያንስ 50 ብር ማስገባት አለብዎት!");
+            alert("አሁን Mini App-ቡ ይዘጋል። እባክዎ የደረሰኝ ፎቶ ቦቱ ላይ ይላኩ።");
+            tele.close();
+        }
+
+        function sendWithdraw() {
+            const amt = document.getElementById('wit-amt').value;
+            const acc = document.getElementById('wit-acc').value;
+            if(amt < 100) return alert("ቢያንስ 100 ብር!");
+            if(acc.length < 10) return alert("ትክክለኛ ቁጥር ያስገቡ");
+            
+            socket.emit('withdrawRequest', {
+                userId: tele.initDataUnsafe.user.id,
+                userName: tele.initDataUnsafe.user.first_name,
+                amount: amt,
+                account: acc
+            });
+            alert("የመውጫ ጥያቄ ለአድሚን ተልኳል!");
+            toggleModal(false);
         }
     </script>
 </body>
