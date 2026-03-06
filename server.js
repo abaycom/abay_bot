@@ -1,89 +1,83 @@
 import com.corundumstudio.socketio.*;
-import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.bots.TelegramLongPollingBot;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Update;
-
+import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.*;
 
-@Service
-public class KenoGameServer extends TelegramLongPollingBot {
+@Component
+public class KenoServer {
 
-    private SocketIOServer socketServer;
+    private SocketIOServer server;
     private int timeLeft = 90;
-    private String status = "BETTING";
-    private final String ADMIN_ID = "YOUR_ADMIN_ID"; // ያንተ ID
-    private Map<Long, Double> balances = new ConcurrentHashMap<>();
+    private String gameStatus = "BETTING";
+    private final List<Map<String, Object>> currentBets = new CopyOnWriteArrayList<>();
 
     @PostConstruct
-    public void startServer() {
-        // 1. Socket.io Configuration
+    public void init() {
         Configuration config = new Configuration();
         config.setHostname("0.0.0.0");
-        config.setPort(3000);
-        socketServer = new SocketIOServer(config);
+        config.setPort(3000); // Socket.io የሚሰራበት ፖርት
 
-        // ተጫዋች ውርርድ ሲልክ
-        socketServer.addEventListener("placeBet", Map.class, (client, data, ackSender) -> {
-            String userId = data.get("userId").toString();
-            double amount = Double.parseDouble(data.get("amount").toString());
-            // እዚህ ጋር ባላንስ ቼክ ይደረጋል
-            System.out.println("Bet received: " + userId + " Amount: " + amount);
+        server = new SocketIOServer(config);
+
+        // --- ውርርድ መቀበያ ---
+        server.addEventListener("placeBet", Map.class, (client, data, ackSender) -> {
+            if (gameStatus.equals("BETTING")) {
+                currentBets.add(data);
+                client.sendEvent("betSuccess", "ውርርድዎ ተመዝግቧል!");
+            } else {
+                client.sendEvent("error", "ይቅርታ፣ ውርርድ ተዘግቷል።");
+            }
         });
 
-        socketServer.start();
+        // --- የገንዘብ ማውጫ ጥያቄ (Withdraw) ---
+        server.addEventListener("withdrawRequest", Map.class, (client, data, ackSender) -> {
+            // እዚህ ጋር ወደ አድሚን ቴሌግራም መልዕክት የሚልክ ኮድ ይገባል
+            System.out.println("Withdraw Request: " + data);
+        });
+
+        server.start();
         startGameLoop();
     }
 
-    // 2. Game Loop (1:30 Betting + 30s Drawing)
     private void startGameLoop() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
             timeLeft--;
+
             if (timeLeft <= 0) {
-                if (status.equals("BETTING")) {
-                    status = "DRAWING";
+                if (gameStatus.equals("BETTING")) {
+                    gameStatus = "DRAWING";
                     timeLeft = 30;
-                    generateDraw();
+                    runDrawProcess();
                 } else {
-                    status = "BETTING";
+                    gameStatus = "BETTING";
                     timeLeft = 90;
+                    currentBets.clear();
                 }
             }
-            // ለሁሉም ተጫዋቾች መረጃ መላክ
+
+            // መረጃውን ለሁሉም ተጫዋቾች መላክ
             Map<String, Object> update = new HashMap<>();
             update.put("timer", formatTime(timeLeft));
-            update.put("status", status);
-            socketServer.getBroadcastOperations().sendEvent("gameUpdate", update);
+            update.put("status", gameStatus);
+            server.getBroadcastOperations().sendEvent("gameUpdate", update);
+
         }, 0, 1, TimeUnit.SECONDS);
     }
 
-    private void generateDraw() {
-        List<Integer> winningNums = new ArrayList<>();
-        while (winningNums.size() < 20) {
-            int n = new Random().nextInt(80) + 1;
-            if (!winningNums.contains(n)) winningNums.add(n);
+    private void runDrawProcess() {
+        List<Integer> winningNumbers = new ArrayList<>();
+        Random random = new Random();
+        while (winningNumbers.size() < 20) {
+            int n = random.nextInt(80) + 1;
+            if (!winningNumbers.contains(n)) winningNumbers.add(n);
         }
-        socketServer.getBroadcastOperations().sendEvent("drawResult", winningNums);
-        // የ 70/30 ክፍያ ሂሳብ እዚህ ይሰላል
+        // እጣውን ለሁሉም መላክ
+        server.getBroadcastOperations().sendEvent("drawResult", winningNumbers);
     }
 
-    private String formatTime(int s) {
-        return String.format("%02d:%02d", s / 60, s % 60);
+    private String formatTime(int totalSecs) {
+        return String.format("%02d:%02d", totalSecs / 60, totalSecs % 60);
     }
-
-    // 3. Telegram Bot Logic (Deposit/Withdraw)
-    @Override
-    public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasPhoto()) {
-            // ደረሰኝ ሲመጣ ለአድሚን መላክ
-            SendMessage msg = new SendMessage(5049565154, "አዲስ ደረሰኝ መጥቷል ከ፡ " + update.getMessage().getFrom().getId());
-            try { execute(msg); } catch (Exception e) { e.printStackTrace(); }
-        }
-    }
-
-    @Override public String getBotUsername() { return "Hiaiethiopiabot"; }
-    @Override public String getBotToken() { return "7161551829:AAH1_u9rmkfqj2itPWYLQciltuQiFFqUzpo"; }
 }
