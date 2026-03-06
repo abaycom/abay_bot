@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Keno</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; }
+        
+        /* Game Info & Timer */
+        .header { background: #333; padding: 10px; display: flex; justify-content: space-around; font-weight: bold; }
+        #timer { color: #ffcc00; font-size: 1.5rem; }
+
+        /* Animation Area (ቁጥሮቹ አንድ በአንድ የሚወጡበት) */
+        .draw-animation-box {
+            height: 120px;
+            background: radial-gradient(circle, #444, #111);
+            margin: 15px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #ffcc00;
+            overflow: hidden;
+        }
+        .draw-ball {
+            width: 60px; height: 60px; background: yellow; color: black;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: bold; margin: 5px;
+            animation: bounceIn 0.5s ease;
+        }
+
+        /* Grid */
+        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; padding: 10px; max-width: 500px; margin: auto; }
+        .num { width: 35px; height: 35px; background: #444; border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .num.selected { background: #007bff; border: 2px solid white; }
+        .num.hit { background: #28a745; } /* የገጠሙ ቁጥሮች */
+
+        /* Wallet Section */
+        .wallet-area { margin-top: 20px; padding: 15px; background: #222; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-deposit { background: #28a745; color: white; }
+        .btn-bet { background: #ffcc00; color: black; width: 80%; font-size: 1.2rem; margin-top: 10px; }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>GAME: <span id="game-id">#1024</span></div>
+        <div id="status">BETTING...</div>
+        <div id="timer">01:30</div>
+    </div>
+
+    <div class="draw-animation-box" id="draw-display">
+        <p id="wait-msg">እባክዎ ቁጥሮችን መርጠው ይወራረዱ</p>
+    </div>
+
+    <div class="grid" id="keno-grid"></div>
+
+    <div class="wallet-area">
+        <div>ባላንስ: <span id="balance">0.00</span> ETB</div>
+        <input type="number" id="bet-amount" placeholder="የብር መጠን" style="padding: 10px; margin-top: 5px;">
+        <button class="btn btn-bet" onclick="placeBet()">ወራረድ (Place Bet)</button>
+        <br><br>
+        <button class="btn btn-deposit" onclick="openDeposit()">Deposit (ገንዘብ አስገባ)</button>
+    </div>
+
+    <script>
+        let selectedNumbers = [];
+        let timeLeft = 90; // 1:30 ደቂቃ
+        let isDrawing = false;
+
+        // Grid መፍጠር
+        const grid = document.getElementById('keno-grid');
+        for (let i = 1; i <= 80; i++) {
+            const div = document.createElement('div');
+            div.className = 'num';
+            div.innerText = i;
+            div.onclick = () => {
+                if(isDrawing) return;
+                if(selectedNumbers.includes(i)) {
+                    selectedNumbers = selectedNumbers.filter(n => n !== i);
+                    div.classList.remove('selected');
+                } else if(selectedNumbers.length < 10) {
+                    selectedNumbers.push(i);
+                    div.classList.add('selected');
+                }
+            };
+            grid.appendChild(div);
+        }
+
+        // Timer Logic
+        function startTimer() {
+            const timerEl = document.getElementById('timer');
+            const statusEl = document.getElementById('status');
+            
+            const countdown = setInterval(() => {
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                timerEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    if (!isDrawing) {
+                        startDraw(); // እጣ ማውጣት ጀምር
+                    }
+                } else {
+                    timeLeft--;
+                }
+            }, 1000);
+        }
+
+        function startDraw() {
+            isDrawing = true;
+            timeLeft = 30; // እጣ የሚወጣበት 30 ሰከንድ
+            document.getElementById('status').innerText = "DRAWING...";
+            document.getElementById('draw-display').innerHTML = ""; // አኒሜሽን ቦታውን አጽዳ
+
+            let count = 0;
+            const drawInterval = setInterval(() => {
+                if (count < 20) {
+                    const randomNum = Math.floor(Math.random() * 80) + 1;
+                    showBall(randomNum);
+                    count++;
+                } else {
+                    clearInterval(drawInterval);
+                    setTimeout(resetGame, 5000); // ከ 5 ሰከንድ በኋላ አዲስ ጨዋታ
+                }
+            }, 1000); // በየ 1 ሰከንዱ አንድ ኳስ
+        }
+
+        function showBall(num) {
+            const display = document.getElementById('draw-display');
+            const ball = document.createElement('div');
+            ball.className = 'draw-ball';
+            ball.innerText = num;
+            
+            // አኒሜሽን ቦታው ላይ መጨመር (የመጨረሻዎቹ 5 ብቻ እንዲታዩ ማድረግ ይቻላል)
+            if(display.children.length > 5) display.removeChild(display.firstChild);
+            display.appendChild(ball);
+
+            // Grid ላይ ካለ ማብራት
+            const gridNums = document.querySelectorAll('.num');
+            gridNums[num-1].classList.add('hit');
+        }
+
+        function resetGame() {
+            isDrawing = false;
+            timeLeft = 90;
+            selectedNumbers = [];
+            document.querySelectorAll('.num').forEach(n => n.className = 'num');
+            document.getElementById('draw-display').innerHTML = "ቀጣይ ጨዋታ በመሰናዳት ላይ...";
+            document.getElementById('status').innerText = "BETTING...";
+        }
+
+        function openDeposit() {
+            alert("እባክዎ የደረሰኝ Screenshot ለቦቱ ይላኩ። አድሚኑ ያጸድቅልዎታል።");
+        }
+
+        startTimer();
+    </script>
+</body>
+</html>
