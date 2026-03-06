@@ -67,17 +67,38 @@
     </div>
 
     <div id="wallet-modal" class="modal">
-        <div class="modal-content">
-            <h3>Wallet Management</h3>
-            <p>1. ለ @Admin_Username በቴሌብር ይላኩ</p>
-            <p>2. የደረሰኝ Screenshot እዚህ ቦት ላይ ይላኩ</p>
-            <hr>
-            <button class="btn" style="background: #dc3545; width: 100%; color: white;" onclick="toggleModal(false)">ዝጋ</button>
+    <div class="modal-content" style="max-width: 400px; width: 90%;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <button onclick="switchTab('deposit')" id="dep-tab" style="flex:1; padding: 10px; background: var(--yellow); border:none; font-weight:bold;">DEPOSIT</button>
+            <button onclick="switchTab('withdraw')" id="wit-tab" style="flex:1; padding: 10px; background: #333; color:white; border:none; font-weight:bold;">WITHDRAW</button>
+        </div>
+
+        <div id="deposit-sec">
+            <p style="font-size: 0.9rem; color: #ccc;">ቢያንስ 50 ብር ማስገባት ይችላሉ።</p>
+            <input type="number" id="dep-amount" placeholder="የብር መጠን (ሚኒመም 50)" min="50" style="width:100%; margin-bottom:10px;">
+            <div style="background: #111; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid var(--yellow);">
+                <small>በቴሌብር ወደዚህ ቁጥር ይላኩ:</small><br>
+                <strong style="font-size: 1.2rem; color: var(--yellow);">0909090909</strong>
+            </div>
+            <button class="btn" style="background: #007bff; width: 100%; color: white;" onclick="sendToBot('deposit')">የደረሰኝ Screenshot ላክ</button>
+        </div>
+
+        <div id="withdraw-sec" style="display: none;">
+            <p style="font-size: 0.9rem; color: #ccc;">ቢያንስ 100 ብር ማውጣት ይችላሉ።</p>
+            <input type="number" id="wit-amount" placeholder="የብር መጠን (ሚኒመም 100)" min="100" style="width:100%; margin-bottom:10px;">
+            <input type="text" id="wit-account" placeholder="የቴሌብር አካውንት (09...)" style="width:100%; margin-bottom:15px;">
+            <button class="btn" style="background: #28a745; width: 100%; color: white;" onclick="sendToBot('withdraw')">የመውጫ ጥያቄ ላክ</button>
+        </div>
+
+        <button class="btn" style="margin-top: 15px; width: 100%; background: #444; color: white;" onclick="toggleModal(false)">ተመለስ</button>
+    </div>
+</div>
+
         </div>
     </div>
 
     <script>
-        const socket = io("YOUR_BACKEND_URL");
+        const socket = io("file:///storage/emulated/0/Android/data/com.teejay.trebedit/files/TrebEdit user files/server.js");
         const tele = window.Telegram.WebApp;
         tele.expand();
 
