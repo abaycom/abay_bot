@@ -3,111 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Keno Red Edition</title>
+    <title>Keno Pro Betting</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --main-red: #d30000; --dark-red: #8b0000; --gold: #ffcc00; }
-        body { background: var(--main-red); color: white; font-family: 'Arial', sans-serif; margin: 0; text-align: center; }
+        :root { --red: #e60000; --dark: #121212; --yellow: #ffcc00; --glass: rgba(255, 255, 255, 0.1); }
+        body { background: var(--red); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow-x: hidden; }
         
-        /* Header & Stats */
-        .stats-bar { background: var(--dark-red); padding: 15px; display: flex; justify-content: space-around; font-weight: bold; border-bottom: 2px solid var(--gold); }
-        #timer { font-size: 2rem; color: var(--gold); text-shadow: 2px 2px 5px black; }
+        /* Glassmorphism Header */
+        .top-nav { background: var(--glass); backdrop-filter: blur(10px); padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        .balance-chip { background: var(--dark); padding: 8px 15px; border-radius: 20px; border: 1px solid var(--yellow); font-weight: bold; color: var(--yellow); }
 
-        /* እጣው የሚወጣበት ቦታ (Drawing Board) */
-        .draw-board {
-            min-height: 150px; background: rgba(0,0,0,0.4); margin: 15px; border-radius: 15px;
-            display: flex; flex-wrap: wrap; align-items: center; justify-content: center; padding: 10px;
-            border: 2px dashed var(--gold);
-        }
-        .draw-ball {
-            width: 45px; height: 45px; background: radial-gradient(circle, #fff, var(--gold)); color: black;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; font-weight: bold; margin: 5px; animation: pop 0.4s ease;
-        }
-
-        /* 1-80 Grid */
-        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 10px; max-width: 450px; margin: auto; }
-        .num { width: 35px; height: 35px; background: #333; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
-        .num.selected { background: #0056b3; border: 2px solid white; transform: scale(1.1); }
-        .num.hit { background: var(--gold); color: black; font-weight: bold; box-shadow: 0 0 10px var(--gold); }
-
-        /* Bet Section */
-        .bet-box { background: var(--dark-red); padding: 20px; border-radius: 20px 20px 0 0; margin-top: 20px; }
-        input { padding: 10px; border-radius: 5px; border: none; width: 80px; margin-right: 10px; }
-        .btn-bet { background: var(--gold); color: black; padding: 12px 30px; border: none; border-radius: 25px; font-weight: bold; font-size: 1rem; }
+        /* Animation Tube (ምስል 1 ላይ እንዳለው) */
+        .draw-section { height: 180px; display: flex; justify-content: center; align-items: center; background: radial-gradient(circle, #333, #000); margin: 10px; border-radius: 20px; border: 4px solid #444; position: relative; }
+        .tube-glass { width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 2px solid #666; display: flex; align-items: center; justify-content: center; position: relative; }
+        .big-ball { width: 100px; height: 100px; background: radial-gradient(circle at 30% 30%, #fff, var(--yellow), #b8860b); border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 3rem; color: black; font-weight: 900; box-shadow: 0 0 30px var(--yellow); animation: ballEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         
-        @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes ballEnter { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1) rotate(0); } }
+
+        /* Keno Grid */
+        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; margin: 10px; }
+        .num { aspect-ratio: 1/1; background: var(--dark); display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.9rem; cursor: pointer; border: 1px solid #333; transition: 0.2s; }
+        .num.selected { background: #007bff; border-color: white; transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .num.hit { background: var(--yellow); color: black; font-weight: bold; animation: glow 1s infinite alternate; }
+        
+        /* Action Panel */
+        .action-panel { background: var(--dark); padding: 20px; border-radius: 30px 30px 0 0; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
+        .bet-input-wrapper { display: flex; gap: 10px; margin-bottom: 15px; }
+        input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #444; background: #222; color: white; text-align: center; font-size: 1.1rem; }
+        .btn { padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-bet { background: var(--yellow); color: black; flex: 2; font-size: 1.1rem; }
+        .btn-wallet { background: #28a745; color: white; width: 100%; margin-top: 10px; }
+        .btn:disabled { opacity: 0.5; filter: grayscale(1); }
+
+        /* Modal (Deposit/Withdraw) */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; padding: 20px; }
+        .modal-content { background: #222; padding: 20px; border-radius: 20px; border: 1px solid var(--yellow); }
     </style>
 </head>
 <body>
 
-    <div class="stats-bar">
-        <div>ባላንስ: <span id="balance">0.00</span> ETB</div>
-        <div id="status">BETTING...</div>
+    <div class="top-nav">
+        <div id="game-info">DRAW <b id="draw-id">#--</b></div>
+        <div id="timer" style="color: var(--yellow); font-size: 1.2rem;">01:30</div>
+        <div class="balance-chip"><span id="balance-val">0.00</span> ETB</div>
     </div>
 
-    <div id="timer">01:30</div>
-
-    <div class="draw-board" id="draw-board">
-        <p id="msg">እባክዎ 10 ቁጥሮችን ይምረጡ</p>
+    <div class="draw-section">
+        <div class="tube-glass">
+            <div id="big-ball" class="big-ball">?</div>
+        </div>
+        <div style="position: absolute; right: 20px; top: 10px; font-weight: bold;" id="count-display">0/20</div>
     </div>
 
-    <div class="grid" id="grid"></div>
+    <div class="grid" id="keno-grid"></div>
 
-    <div class="bet-box">
-        <input type="number" id="bet-amount" placeholder="ETB" value="10">
-        <button class="btn-bet" onclick="placeBet()">አሁኑኑ ውራረድ</button>
+    <div class="action-panel">
+        <div class="bet-input-wrapper">
+            <input type="number" id="bet-amt" placeholder="መጠን" value="10">
+            <button class="btn btn-bet" id="bet-btn" onclick="placeBet()">አሁኑኑ ውራረድ</button>
+        </div>
+        <button class="btn btn-wallet" onclick="toggleModal(true)">Wallet (Deposit / Withdraw)</button>
+    </div>
+
+    <div id="wallet-modal" class="modal">
+        <div class="modal-content">
+            <h3>Wallet Management</h3>
+            <p>1. ለ @Admin_Username በቴሌብር ይላኩ</p>
+            <p>2. የደረሰኝ Screenshot እዚህ ቦት ላይ ይላኩ</p>
+            <hr>
+            <button class="btn" style="background: #dc3545; width: 100%; color: white;" onclick="toggleModal(false)">ዝጋ</button>
+        </div>
     </div>
 
     <script>
-        const socket = io("YOUR_BACKEND_URL"); // የሰርቨርህ ሊንክ
-        let selected = [];
-        const grid = document.getElementById('grid');
+        const socket = io("YOUR_BACKEND_URL");
+        const tele = window.Telegram.WebApp;
+        tele.expand();
 
-        // 1-80 Grid መፍጠር
+        let selected = [];
+        let isDrawing = false;
+
+        // Grid መፍጠር
         for (let i = 1; i <= 80; i++) {
-            const div = document.createElement('div');
-            div.className = 'num'; div.id = `n-${i}`; div.innerText = i;
-            div.onclick = () => {
+            const d = document.createElement('div');
+            d.className = 'num'; d.id = `n-${i}`; d.innerText = i;
+            d.onclick = () => {
+                if(isDrawing) return;
                 if(selected.includes(i)) {
-                    selected = selected.filter(x => x !== i); div.classList.remove('selected');
+                    selected = selected.filter(x => x !== i); d.classList.remove('selected');
                 } else if(selected.length < 10) {
-                    selected.push(i); div.classList.add('selected');
+                    selected.push(i); d.classList.add('selected');
                 }
             };
-            grid.appendChild(div);
+            document.getElementById('keno-grid').appendChild(d);
         }
 
-        socket.on('gameUpdate', (data) => {
+        socket.on('gameUpdate', data => {
             document.getElementById('timer').innerText = data.timer;
-            document.getElementById('status').innerText = data.status;
-            if(data.status === "BETTING") {
-                document.getElementById('draw-board').innerHTML = '<p>ቀጣይ ጨዋታ እየተጠበቀ ነው...</p>';
-                document.querySelectorAll('.num').forEach(n => n.classList.remove('hit'));
+            if(data.status === "DRAWING") {
+                isDrawing = true;
+                document.getElementById('bet-btn').disabled = true;
+            } else {
+                isDrawing = false;
+                document.getElementById('bet-btn').disabled = false;
+                resetBoard();
             }
         });
 
-        socket.on('drawResult', (winningNumbers) => {
-            const board = document.getElementById('draw-board');
-            board.innerHTML = "";
+        socket.on('drawResult', nums => {
             let i = 0;
             const interval = setInterval(() => {
-                if(i < winningNumbers.length) {
-                    const ball = document.createElement('div');
-                    ball.className = 'draw-ball';
-                    ball.innerText = winningNumbers[i];
-                    board.appendChild(ball);
-                    document.getElementById(`n-${winningNumbers[i]}`).classList.add('hit');
+                if(i < nums.length) {
+                    showBigBall(nums[i]);
+                    document.getElementById(`n-${nums[i]}`).classList.add('hit');
+                    document.getElementById('count-display').innerText = `${i+1}/20`;
                     i++;
                 } else { clearInterval(interval); }
-            }, 800);
+            }, 1000);
         });
 
+        function showBigBall(val) {
+            const ball = document.getElementById('big-ball');
+            ball.style.display = 'none';
+            setTimeout(() => {
+                ball.innerText = val;
+                ball.style.display = 'flex';
+                tele.HapticFeedback.impactOccurred('medium');
+            }, 50);
+        }
+
+        function resetBoard() {
+            document.querySelectorAll('.num').forEach(n => n.classList.remove('hit'));
+            document.getElementById('big-ball').style.display = 'none';
+            document.getElementById('count-display').innerText = `0/20`;
+        }
+
         function placeBet() {
-            const amt = document.getElementById('bet-amount').value;
-            if(selected.length !== 10) return alert("10 ቁጥር ይምረጡ");
-            socket.emit('placeBet', { userId: "USER_ID", numbers: selected, amount: amt });
+            const amt = document.getElementById('bet-amt').value;
+            if(selected.length < 1) return alert("ቢያንስ 1 ቁጥር ይምረጡ");
+            socket.emit('placeBet', {
+                userId: tele.initDataUnsafe.user.id,
+                numbers: selected,
+                amount: amt
+            });
+            tele.showConfirm("ውርርድዎ ተመዝግቧል!");
+        }
+
+        function toggleModal(show) {
+            document.getElementById('wallet-modal').style.display = show ? 'flex' : 'none';
         }
     </script>
 </body>
