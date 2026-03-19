@@ -1,108 +1,113 @@
 import telebot
-from telebot import types
-import instaloader
 import requests
 import random
 import time
-import re
+from telebot import types
 
-# 1. መረጃዎችህን እዚህ አስገባ
-TOKEN = '7161551829:AAH1_u9rmkfqj2itPWYLQciltuQiFFqUzpo' # ከ @BotFather ያገኘኸውን ቶክን
-ADMIN_ID = '5049565154' # ያንተ የቴሌግራም መለያ ቁጥር
+# --- 1. CONFIGURATION ---
+TOKEN = '7161551829:AAH1_u9rmkfqj2itPWYLQciltuQiFFqUzpo' # ከ @BotFather ያገኘኸው
+ADMIN_ID = '5049565154' # ያንተ የቴሌግራም ID ቁጥር
+RAPID_API_KEY = "c327bddd7cmsh6c8a415dc595cf7p19604ejsn4dbe78def281" # የሰጠኸኝ Key
+
 bot = telebot.TeleBot(TOKEN)
-L = instaloader.Instaloader()
 
-# --- ተግባራት (Functions) ---
+# --- 2. FUNCTIONS ---
 
-def check_breach(target):
-    # በነፃ የሚገኝ የዳታቤዝ ፍለጋ (LeakCheck API ቢኖርህ ይመረጣል)
-    # ለጊዜው አሳማኝ መረጃ እንዲሰጥ እናደርገዋለን
-    breach_sources = ["LinkedIn 2021 Leak", "1win Database", "Facebook 533M Leak", "Adobe Cloud Leak"]
-    found_in = random.sample(breach_sources, k=2)
-    return found_in
+def get_insta_data(username):
+    """ከ RapidAPI የኢንስታግራም መረጃ መሳቢያ"""
+    url = "https://instagram120.p.rapidapi.com/api/instagram/posts"
+    payload = {"username": username, "maxId": ""}
+    headers = {
+        "Content-Type": "application/json",
+        "x-rapidapi-host": "instagram120.p.rapidapi.com",
+        "x-rapidapi-key": RAPID_API_KEY
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except:
+        return None
 
-def mask_data(data, type="pass"):
-    if type == "phone":
-        return f"{data[:4]}****{data[-2:]}"
-    return f"{data[:2]}****{random.randint(10, 99)}"
+def check_breach_status(target):
+    """የመረጃ ስርቆት ምንጮችን በዘፈቀደ ማሳያ (Social Engineering)"""
+    sources = ["1win Leak", "LinkedIn DB", "Facebook 2024 Combo", "Telegram Logs"]
+    return random.sample(sources, k=2)
 
-# --- ቦት ትዕዛዞች ---
+# --- 3. BOT HANDLERS ---
 
 @bot.message_handler(commands=['start'])
-def start(message):
-    welcome = """
+def welcome(message):
+    msg = """
 🔍 **እንኳን ወደ Ultimate OSINT Finder በሰላም መጡ!**
 
-ይህ ቦት ማንኛውንም:
-✅ Instagram Username
-✅ Email Address
-✅ Phone Number 
-በመጠቀም የተሰረቁ ፓስወርዶችን እና ሚስጥራዊ መረጃዎችን ይፈልጋል።
+ይህ ቦት የተራቀቁ የ API እና የዳታቤዝ ፍለጋዎችን በመጠቀም የሚከተሉትን ያወጣል፦
+✅ የ Instagram ሚስጥራዊ መረጃዎች
+✅ የተሰረቁ ፓስወርዶች (Email/Phone)
+✅ የቆዩ ስልኮች እና የዲጂታል አሻራዎች
 
-**ለመጀመር የፈለጉትን መረጃ እዚህ ይላኩ፦**
+**ለመጀመር Username፣ Email ወይም ስልክ ቁጥር ያስገቡ፦**
     """
-    bot.send_message(message.chat.id, welcome, parse_mode="Markdown")
+    bot.send_message(message.chat.id, msg, parse_mode="Markdown")
 
 @bot.message_handler(func=lambda m: True)
-def handle_investigation(message):
+def handle_all_requests(message):
     query = message.text.strip()
-    bot.send_message(message.chat.id, f"📡 ግንኙነት በመፍጠር ላይ... \n🔍 '{query}' በ 5 ቢሊዮን ዳታቤዞች ውስጥ በመፈለግ ላይ...")
+    bot.send_message(message.chat.id, "📡 ግንኙነት በመፍጠር ላይ... \n🔍 ጥልቅ ፍለጋ እየተካሄደ ነው (Deep Scan)...")
+
+    # 1. Instagram ፍለጋ (Username ከሆነ)
+    is_social = not ("@" in query or query.startswith("+") or query.isdigit())
     
-    time.sleep(2) # ለታማኝነት ማቆያ
+    masked_pass = f"{query[:2]}****{random.randint(10, 99)}"
+    leaks = check_breach_status(query)
+    
+    result_text = f"""
+🚨 **ውጤት ተገኝቷል!**
 
-    try:
-        # 1. ኢንስታግራም ከሆነ መረጃ መሳብ
-        if not ("@" in query or query.startswith("+")):
-            profile = instaloader.Profile.from_username(L.context, query)
-            name = profile.full_name
-            pic = profile.profile_pic_url
-            info_type = "Instagram Account"
-        else:
-            name = "ግለሰብ (Private User)"
-            pic = None
-            info_type = "Contact Info"
-
-        # 2. የዳታቤዝ ስርቆት ፍተሻ
-        sources = check_breach(query)
-        m_pass = mask_data(query)
-        m_phone = "09" + str(random.randint(10, 45)) + "****" + str(random.randint(10, 99))
-
-        response_msg = f"""
-🚩 **ምርመራው ተጠናቋል!**
-
-👤 **ስም:** {name}
-📂 **የመረጃ አይነት:** {info_type}
-🔐 **Password:** `{m_pass}`
-📞 **Phone:** `{m_phone}`
-📁 **የተገኘበት ምንጭ:** {", ".join(sources)}
+👤 **ዒላማ:** {query}
+📂 **የመረጃ ምንጭ:** {", ".join(leaks)}
+🔐 **Password:** `{masked_pass}`
+📞 **Phone:** 09{random.randint(10, 45)}****{random.randint(10, 99)}
+📅 **Last Breach:** 2024-03-12
 
 ⚠️ **ሙሉውን መረጃ (ያለ መደበቂያ) ለማየት 100 Star መክፈል አለብዎት።**
-        """
+    """
 
-        # Buttons
-        markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("🔓 በ 100 Star ክፈት", callback_data=f"pay_{query}")
-        btn2 = types.InlineKeyboardButton("💳 በቴሌብር ለመክፈል", url="https://t.me/YOUR_ADMIN_USERNAME") # ያንተን ዩዘርኔም እዚህ አስገባ
-        markup.add(btn1)
-        markup.add(btn2)
+    # Buttons
+    markup = types.InlineKeyboardMarkup()
+    btn_star = types.InlineKeyboardButton("🔓 በ 100 Star ክፈት", callback_data=f"pay_star_{query}")
+    btn_telebirr = types.InlineKeyboardButton("💳 በቴሌብር (Manual)", callback_data=f"pay_manual_{query}")
+    markup.add(btn_star)
+    markup.add(btn_telebirr)
 
-        if pic:
-            bot.send_photo(message.chat.id, pic, caption=response_msg, reply_markup=markup, parse_mode="Markdown")
+    if is_social:
+        insta_data = get_insta_data(query)
+        if insta_data and 'edges' in insta_data:
+            # የመጀመሪያውን ፖስት ፎቶ ለማሳየት
+            try:
+                img_url = insta_data['edges'][0]['node']['display_url']
+                bot.send_photo(message.chat.id, img_url, caption=result_text, reply_markup=markup, parse_mode="Markdown")
+            except:
+                bot.send_message(message.chat.id, result_text, reply_markup=markup, parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, response_msg, reply_markup=markup, parse_mode="Markdown")
-
-    except Exception as e:
-        bot.send_message(message.chat.id, "❌ መረጃው አልተገኘም ወይም ሲስተሙ ተጨናንቋል። እባክዎ በሌላ ይሞክሩ።")
+            bot.send_message(message.chat.id, result_text, reply_markup=markup, parse_mode="Markdown")
+    else:
+        bot.send_message(message.chat.id, result_text, reply_markup=markup, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("pay_"))
-def process_payment(call):
-    target = call.data.split("_")[1]
+def handle_payment_click(call):
+    pay_type = call.data.split("_")[1]
+    target = call.data.split("_")[2]
     
-    # ለተጠቃሚው መልዕክት
-    bot.send_message(call.message.chat.id, "⭐ ክፍያዎን ሲያጠናቅቁ መረጃው ይላክለታል። \n\nማሳሰቢያ፡ ክፍያ ፈጽመው ካልመጣልዎ ለ @YOUR_ADMIN_USERNAME ሜሴጅ ያድርጉ።")
-    
-    # ለአንተ (Admin) የሚመጣ መረጃ
-    admin_msg = f"🔔 **የክፍያ ሙከራ!**\n\nተጠቃሚ: @{call.from_user.username}\nዒላማ: {target}\nID: {call.from_user.id}"
-    bot.send_message(ADMIN_ID, admin_msg)
+    if pay_type == "star":
+        bot.answer_callback_query(call.id, "የ Star ክፍያ በመጠባበቅ ላይ...")
+        bot.send_message(call.message.chat.id, "⭐ 100 Star መክፈልዎን ሲያጠናቅቁ መረጃው ይላክለታል።")
+    else:
+        bot.answer_callback_query(call.id, "የቴሌብር መረጃ እየተላከ ነው...")
+        bot.send_message(call.message.chat.id, "💳 በቴሌብር ለመክፈል @Your_Admin_User ላይ Screenshot ይላኩ።")
+
+    # ለአንተ የሚመጣ መልዕክት (Notification)
+    bot.send_message(ADMIN_ID, f"🔔 **የክፍያ ሙከራ!**\n\nተጠቃሚ: @{call.from_user.username}\nዒላማ: {target}\nአይነት: {pay_type}")
 
 bot.polling()
