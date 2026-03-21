@@ -3,3 +3,7 @@ requests
 pyTelegramBotAPI
 instaloader
 requests
+python-telegram-bot
+pymongo
+dnspython
+certifi
