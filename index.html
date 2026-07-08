@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>የፊልም አለም | Premium Streaming</title>
+    <style>
+        /* ማስተካከያ እና የፊደል ውበት */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        
+        /* የጀርባ ቀለም (Netflix Dark Theme) */
+        body { background-color: #09090b; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
+
+        /* የላይኛው ራስጌ ገጽታ */
+        header { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px 20px; background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, rgba(9, 9, 11, 0) 100%);
+            margin-bottom: 20px;
+        }
+        
+        header h1 { 
+            font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 20px;
+            background: linear-gradient(to right, #a78bfa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        /* ፕሮፌሽናል የፍለጋ ሳጥን */
+        .search-container { width: 100%; max-width: 550px; position: relative; }
+        .search-box { 
+            width: 100%; padding: 15px 25px; border-radius: 30px; border: 1px solid #27272a; 
+            background-color: #18181b; color: white; font-size: 16px; outline: none; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .search-box:focus { border-color: #7c3aed; box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); background-color: #27272a; }
+
+        /* የፊልም መደርደሪያ (Responsive Grid) */
+        .main-container { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
+        .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #e4e4e7; border-left: 4px solid #7c3aed; padding-left: 10px; }
+        
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 25px; }
+
+        /* የፊልም ካርድ ውበት (Hover Effects) */
+        .movie-card { 
+            background-color: #18181b; border-radius: 12px; overflow: hidden; cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #27272a; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .movie-card:hover { 
+            transform: translateY(-8px) scale(1.02); border-color: #7c3aed; 
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4); 
+        }
+        
+        .image-wrapper { width: 100%; height: 285px; overflow: hidden; position: relative; }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+        .movie-card:hover img { transform: scale(1.05); }
+
+        /* የፊልም መግለጫ ጽሑፍ */
+        .movie-info { padding: 15px; }
+        .movie-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f4f4f5; }
+        .movie-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: #a1a1aa; }
+        .rating { background: #27272a; padding: 2px 6px; border-radius: 4px; color: #f59e0b; font-weight: bold; }
+
+        /* የፊልም ማጫወቻ ገጽ (Modal) */
+        .player-modal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(9, 9, 11, 0.95); z-index: 1000; justify-content: center; align-items: center;
+            backdrop-filter: blur(10px); opacity: 0; transition: opacity 0.3s ease;
+        }
+        .player-modal.active { display: flex; opacity: 1; }
+        
+        .modal-content { width: 95%; max-width: 900px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        .iframe-container { position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */ background: #000; }
+        .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        
+        /* የሰርቨር መቀያየሪያ ቁልፎች */
+        .server-control { display: flex; gap: 10px; padding: 15px; background: #18181b; border-top: 1px solid #27272a; align-items: center; justify-content: space-between; }
+        .server-buttons { display: flex; gap: 8px; }
+        .server-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; }
+        .server-btn.active { background: #7c3aed; border-color: #a78bfa; }
+        .close-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>STREAM SPHERE</h1>
+    <div class="search-container">
+        <input type="text" id="searchQuery" class="search-box" placeholder="ፊልም ወይም ተከታታይ ድራማዎችን እዚህ ይፈልጉ..." onkeyup="if(event.key === 'Enter') startSearch()">
+    </div>
+</header>
+
+<main class="main-container">
+    <h2 class="section-title" id="listTitle">ታዋቂ ፊልሞች</h2>
+    <div class="movie-grid" id="movieDisplay"></div>
+</main>
+
+<!-- ቪዲዮ መክፈቻ ሞዳል -->
+<div class="player-modal" id="playerModal">
+    <div class="modal-content">
+        <div class="iframe-container">
+            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+        </div>
+        <div class="server-control">
+            <div class="server-buttons">
+                <span style="font-size: 13px; color: #a1a1aa; align-self: center; margin-right: 5px;">ሰርቨር ቀይር:</span>
+                <button class="server-btn active" onclick="switchServer(1)">ሰርቨር 1</button>
+                <button class="server-btn" onclick="switchServer(2)">**ሰርቨር 2**</button>
+                <button class="server-btn" onclick="switchServer(3)">ሰርቨር 3</button>
+            </div>
+            <button class="close-btn" onclick="closePlayer()">ዝጋ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_KEY = "f519e4673f7652685cfc57630b824606";
+    let currentTmdbId = null;
+
+    // ድረ-ገጹ ሲከፈት በራስ-ሰር ታዋቂ ፊልሞችን ያምጣ
+    window.onload = function() {
+        fetchMovies(`https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&language=en-US&page=1`, "ታዋቂ ፊልሞች");
+    };
+
+    // ፍለጋ ሲደረግ
+    function startSearch() {
+        const query = document.getElementById('searchQuery').value;
+        if(query.trim() !== "") {
+            fetchMovies(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, `የተገኙ ውጤቶች: "${query}"`);
+        }
+    }
+
+    // መረጃ መሳቢያ
+    function fetchMovies(url, titleText) {
+        document.getElementById('listTitle').innerText = titleText;
+        fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const movies = data.results;
+            const display = document.getElementById('movieDisplay');
+            display.innerHTML = ""; 
+
+            movies.forEach(movie => {
+                if(!movie.poster_path) return; 
+                
+                const poster = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+                const year = movie.release_date ? movie.release_date.substring(0,4) : "N/A";
+                const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "0.0";
+
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.onclick = () => playMovie(movie.id); 
+                card.innerHTML = `
+                    <div class="image-wrapper">
+                        <img src="${poster}" alt="${movie.title}" loading="lazy">
+                    </div>
+                    <div class="movie-info">
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-meta">
+                            <span>${year}</span>
+                            <span class="rating">★ ${rating}</span>
+                        </div>
+                    </div>
+                `;
+                display.appendChild(card);
+            });
+        });
+    }
+
+    // ፊልም ማጫወት እና ሰርቨር መምረጥ
+    function playMovie(tmdbId) {
+        currentTmdbId = tmdbId;
+        const modal = document.getElementById('playerModal');
+        modal.classList.add('active');
+        switchServer(1); // በመጀመሪያ ሰርቨር 1ን ከፍት
+    }
+
+    // ሰርቨር መቀያየሪያ ሲስተም (አንዱ ባይሰራ ሌላኛው እንዲከፍት)
+    function switchServer(serverNum) {
+        const iframe = document.getElementById('videoIframe');
+        const buttons = document.querySelectorAll('.server-btn');
+        
+        // የነቃውን በተን ስታይል መቀየር
+        buttons.forEach((btn, index) => {
+            if(index === (serverNum - 1)) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+
+        // 3 የተለያዩ አዳዲስ ሰርቨር ሊንኮች
+        if(serverNum === 1) {
+            iframe.src = `https://vidsrc.xyz/embed/movie/${currentTmdbId}`;
+        } else if(serverNum === 2) {
+            iframe.src = `https://vidsrc.pro/embed/movie/${currentTmdbId}`;
+        } else if(serverNum === 3) {
+            iframe.src = `https://vidsrc.to/embed/movie/${currentTmdbId}`;
+        }
+    }
+
+    // ማጫወቻውን መዝጊያ
+    function closePlayer() {
+        const modal = document.getElementById('playerModal');
+        const iframe = document.getElementById('videoIframe');
+        iframe.src = ""; 
+        modal.classList.remove('active');
+    }
+</script>
+</body>
+</html>
