@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background-color: #09090b; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
 
-        /* የላይኛው ማውጫ (Header) */
+        /* Header UI */
         header { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 40px 20px; background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, rgba(9, 9, 11, 0) 100%);
@@ -21,7 +21,7 @@
             background: linear-gradient(to right, #a78bfa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        /* የፍለጋ ሳጥን (Search Bar) */
+        /* Modern Search Bar */
         .search-container { width: 100%; max-width: 550px; position: relative; }
         .search-box { 
             width: 100%; padding: 15px 25px; border-radius: 30px; border: 1px solid #27272a; 
@@ -30,12 +30,12 @@
         }
         .search-box:focus { border-color: #7c3aed; box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); background-color: #27272a; }
 
-        /* የፊልም መደርደሪያ (Movie Grid) */
+        /* Responsive Movie Grid */
         .main-container { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
         .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #e4e4e7; border-left: 4px solid #7c3aed; padding-left: 10px; }
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 25px; }
 
-        /* የፊልም ካርድ (Movie Card) */
+        /* Premium Movie Card Layout */
         .movie-card { 
             background-color: #18181b; border-radius: 12px; overflow: hidden; cursor: pointer; 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #27272a;
@@ -51,7 +51,7 @@
         .movie-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: #a1a1aa; }
         .rating { background: #27272a; padding: 2px 6px; border-radius: 4px; color: #f59e0b; font-weight: bold; }
 
-        /* የቪዲዮ መክፈቻ ሳጥን (Modal Player Layout) */
+        /* Cinematic Video Modal Player */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(9, 9, 11, 0.98); z-index: 1000; justify-content: center; align-items: center;
@@ -61,11 +61,9 @@
         
         .modal-content { width: 95%; max-width: 950px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; }
         .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
-        
-        /* ማስታወቂያ እንዳይከፍት በ sandbox የታገደ ማጫወቻ */
         .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
-        /* የበተኖች መቆጣጠሪያ (Footer) */
+        /* Control Panel Footer */
         .server-control { display: flex; gap: 10px; padding: 15px 20px; background: #18181b; border-top: 1px solid #27272a; align-items: center; justify-content: space-between; }
         .server-buttons { display: flex; gap: 8px; }
         .server-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
@@ -78,29 +76,29 @@
 <header>
     <h1>STREAM SPHERE</h1>
     <div class="search-container">
-        <input type="text" id="searchQuery" class="search-box" placeholder="ፊልም እዚህ ይፈልጉ..." onkeyup="if(event.key === 'Enter') startSearch()">
+        <input type="text" id="searchQuery" class="search-box" placeholder="Search movies here..." onkeyup="if(event.key === 'Enter') startSearch()">
     </div>
 </header>
 
 <main class="main-container">
-    <h2 class="section-title" id="listTitle">ታዋቂ ፊልሞች</h2>
+    <h2 class="section-title" id="listTitle">Trending Movies</h2>
     <div class="movie-grid" id="movieDisplay"></div>
 </main>
 
-<!-- ቪዲዮ መክፈቻ ሞዳል -->
+<!-- Video Player Modal -->
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
         <div class="iframe-container">
-            <!-- sandbox="allow-scripts allow-same-origin" -> ወደ ሌላ ገጽ እንዳይወስድህ የሚቆልፈው ዋናው ምስጢር ይህ ነው -->
-            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin"></iframe>
+            <!-- Adjusted sandbox attributes to block trial popups while maintaining video execution -->
+            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
         </div>
         <div class="server-control">
             <div class="server-buttons">
-                <span style="font-size: 13px; color: #a1a1aa; align-self: center; margin-right: 5px;">ሰርቨር ቀይር:</span>
-                <button class="server-btn active" onclick="switchServer(1)">ሰርቨር 1 (Premium)</button>
-                <button class="server-btn" onclick="switchServer(2)">ሰርቨር 2 (Ad-Free)</button>
+                <span style="font-size: 13px; color: #a1a1aa; align-self: center; margin-right: 5px;">Switch Server:</span>
+                <button class="server-btn active" onclick="switchServer(1)">Server 1 (Premium Ad-Free)</button>
+                <button class="server-btn" onclick="switchServer(2)">Server 2 (Backup Direct)</button>
             </div>
-            <button class="close-btn" onclick="closePlayer()">ዝጋ</button>
+            <button class="close-btn" onclick="closePlayer()">Close</button>
         </div>
     </div>
 </div>
@@ -109,20 +107,20 @@
     const API_KEY = "f519e4673f7652685cfc57630b824606";
     let currentTmdbId = null;
 
-    // ገጹ ሲከፈት በራስ-ሰር ታዋቂ ፊልሞችን መሳቢያ
+    // Load trending movies initially
     window.onload = function() {
-        fetchMovies(`https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&language=en-US&page=1`, "ታዋቂ ፊልሞች");
+        fetchMovies(`https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&language=en-US&page=1`, "Trending Movies");
     };
 
-    // ፍለጋ ሲደረግ
+    // Triggered on search
     function startSearch() {
         const query = document.getElementById('searchQuery').value;
         if(query.trim() !== "") {
-            fetchMovies(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, `የተገኙ ውጤቶች: "${query}"`);
+            fetchMovies(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, `Search Results for: "${query}"`);
         }
     }
 
-    // መረጃዎችን ከ TMDB አውርዶ መደርደሪያ
+    // Fetch data from TMDB
     function fetchMovies(url, titleText) {
         document.getElementById('listTitle').innerText = titleText;
         fetch(url)
@@ -159,7 +157,6 @@
         });
     }
 
-    // ፊልም ሲነካ ማጫወቻውን መክፈት
     function playMovie(tmdbId) {
         currentTmdbId = tmdbId;
         const modal = document.getElementById('playerModal');
@@ -167,7 +164,7 @@
         switchServer(1); 
     }
 
-    // ማስታወቂያዎችን ሙሉ በሙሉ የሚቆልፈው አዲሱ የሰርቨር ሲስተም
+    // Multi-Server Routing optimized to bypass hidden player trials
     function switchServer(serverNum) {
         const iframe = document.getElementById('videoIframe');
         const buttons = document.querySelectorAll('.server-btn');
@@ -177,15 +174,14 @@
             else btn.classList.remove('active');
         });
 
-        // በአሁኑ ሰዓት ማስታወቂያ የሌላቸው እና ከ sandbox ጋር የሚሰሩ ምርጥ ሊንኮች
+        // Utilizing direct streams that ignore video-layer overlay trials
         if(serverNum === 1) {
-            iframe.src = `https://vidsrc.in/embed/movie/${currentTmdbId}`; 
+            iframe.src = `https://autoembed.cc/movie/${currentTmdbId}`; 
         } else if(serverNum === 2) {
-            iframe.src = `https://embed.su/embed/movie/${currentTmdbId}`; 
+            iframe.src = `https://vidsrc.cc/vidsrc/movie/${currentTmdbId}`; 
         }
     }
 
-    // ማጫወቻውን መዝጊያ
     function closePlayer() {
         const modal = document.getElementById('playerModal');
         const iframe = document.getElementById('videoIframe');
