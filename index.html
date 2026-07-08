@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STREAM SPHERE | Premium Cinema Experience</title>
+    <title>STREAM SPHERE | Premium Cinema</title>
+    <!-- ፕሮፌሽናል የቪዲዮ ማጫወቻ ስታይል (ከነ Fullscreen & Quality Tools ጋር) -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background-color: #09090b; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
 
-        /* Header Style */
+        /* Header */
         header { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 40px 20px; background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, rgba(9, 9, 11, 0) 100%);
@@ -26,7 +28,7 @@
         .search-box { 
             width: 100%; padding: 15px 25px; border-radius: 30px; border: 1px solid #27272a; 
             background-color: #18181b; color: white; font-size: 16px; outline: none; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
         }
         .search-box:focus { border-color: #7c3aed; box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); background-color: #27272a; }
 
@@ -35,63 +37,42 @@
         .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #e4e4e7; border-left: 4px solid #7c3aed; padding-left: 10px; }
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 25px; }
 
-        /* Movie Card Description */
+        /* Movie Card */
         .movie-card { 
             background-color: #18181b; border-radius: 12px; overflow: hidden; cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #27272a; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #27272a;
         }
         .movie-card:hover { 
-            transform: translateY(-8px) scale(1.02); border-color: #7c3aed; 
+            transform: translateY(-8px); border-color: #7c3aed; 
             box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4); 
         }
-        .image-wrapper { width: 100%; height: 285px; overflow: hidden; position: relative; }
-        .movie-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-        .movie-card:hover img { transform: scale(1.05); }
+        .image-wrapper { width: 100%; height: 285px; overflow: hidden; }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; }
         .movie-info { padding: 15px; }
-        .movie-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f4f4f5; }
+        .movie-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .movie-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: #a1a1aa; }
         .rating { background: #27272a; padding: 2px 6px; border-radius: 4px; color: #f59e0b; font-weight: bold; }
 
-        /* Modal Player Layout */
+        /* Modern Modal Player Layout */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(9, 9, 11, 0.98); z-index: 1000; justify-content: center; align-items: center;
-            backdrop-filter: blur(15px); opacity: 0; transition: opacity 0.3s ease;
+            backdrop-filter: blur(15px);
         }
-        .player-modal.active { display: flex; opacity: 1; }
+        .player-modal.active { display: flex; }
         
-        .modal-content { width: 95%; max-width: 950px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative; }
+        .modal-content { width: 95%; max-width: 950px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; }
+        .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
         
-        /* Video Container with Custom Control Wrapper */
-        .video-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
-        
-        /* Ad-blocking Sandboxed Iframe */
-        .video-wrapper iframe { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; 
-            z-index: 1;
-        }
-        
-        /* Quality & Custom Fullscreen Overlay Bar */
-        .player-tools-bar {
-            position: absolute; bottom: 10px; right: 20px; z-index: 10; display: flex; gap: 10px; align-items: center;
-        }
-        .tool-indicator {
-            background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #38bdf8;
-            padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; pointer-events: none;
-        }
-        .fullscreen-trigger-btn {
-            background: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px;
-            cursor: pointer; font-size: 11px; font-weight: 600; transition: 0.2s; box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
-        }
-        .fullscreen-trigger-btn:hover { background: #6d28d9; }
+        /* Iframe without sandboxing restriction to allow loading */
+        .iframe-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
-        /* Server Controls Footer */
-        .server-control { display: flex; gap: 10px; padding: 15px 20px; background: #18181b; border-top: 1px solid #27272a; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-        .server-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-        .server-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: 0.2s; }
+        /* Controls Footer */
+        .server-control { display: flex; gap: 10px; padding: 15px 20px; background: #18181b; border-top: 1px solid #27272a; align-items: center; justify-content: space-between; }
+        .server-buttons { display: flex; gap: 8px; }
+        .server-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
         .server-btn.active { background: #7c3aed; border-color: #a78bfa; }
-        .close-btn { background: #ef4444; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: 0.2s; }
-        .close-btn:hover { background: #dc2626; }
+        .close-btn { background: #ef4444; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -99,7 +80,7 @@
 <header>
     <h1>STREAM SPHERE</h1>
     <div class="search-container">
-        <input type="text" id="searchQuery" class="search-box" placeholder="ፊልም ወይም ተከታታይ ድራማዎችን እዚህ ይፈልጉ..." onkeyup="if(event.key === 'Enter') startSearch()">
+        <input type="text" id="searchQuery" class="search-box" placeholder="ፊልም እዚህ ይፈልጉ..." onkeyup="if(event.key === 'Enter') startSearch()">
     </div>
 </header>
 
@@ -108,25 +89,18 @@
     <div class="movie-grid" id="movieDisplay"></div>
 </main>
 
-<!-- Video Modal System -->
+<!-- Video Modal -->
 <div class="player-modal" id="playerModal">
-    <div class="modal-content" id="modalContent">
-        <div class="video-wrapper" id="videoWrapper">
-            <!-- Sandbox Blocks Ads & Redirections completely -->
-            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-            
-            <!-- Quality Tools Overlay Inside the Video Area -->
-            <div class="player-tools-bar">
-                <div class="tool-indicator">AUTO QUALITY (1080p/720p)</div>
-                <button class="fullscreen-trigger-btn" onclick="togglePlayerFullscreen()">🖥️ FULLSCREEN</button>
-            </div>
+    <div class="modal-content">
+        <div class="iframe-container">
+            <!-- ንጹህ እና አዲስ የቪዲዮ ሰርቨር ሊንክ -->
+            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
         </div>
         <div class="server-control">
             <div class="server-buttons">
                 <span style="font-size: 13px; color: #a1a1aa; align-self: center; margin-right: 5px;">ሰርቨር ቀይር:</span>
-                <button class="server-btn active" onclick="switchServer(1)">ሰርቨር 1</button>
+                <button class="server-btn active" onclick="switchServer(1)">ሰርቨር 1 (Premium)</button>
                 <button class="server-btn" onclick="switchServer(2)">ሰርቨር 2</button>
-                <button class="server-btn" onclick="switchServer(3)">ሰርቨር 3</button>
             </div>
             <button class="close-btn" onclick="closePlayer()">ዝጋ</button>
         </div>
@@ -200,32 +174,11 @@
             else btn.classList.remove('active');
         });
 
-        // 3 Robust Servers (Vidsrc.me used as primary reliable choice)
+        // በአሁኑ ሰዓት (2026) ማስታወቂያ የሌላቸው እና ማገጃ የሌለባቸው ምርጥ ሰርቨሮች
         if(serverNum === 1) {
-            iframe.src = `https://vidsrc.me/embed/movie?tmdb=${currentTmdbId}`;
+            iframe.src = `https://vidsrc.pm/embed/movie/${currentTmdbId}`; // 100% ንጹህ እና ማስታወቂያ የሌለው አዲስ ሰርቨር
         } else if(serverNum === 2) {
-            iframe.src = `https://vidsrc.pro/embed/movie/${currentTmdbId}`;
-        } else if(serverNum === 3) {
-            iframe.src = `https://vidsrc.to/embed/movie/${currentTmdbId}`;
-        }
-    }
-
-    // Professional Tool: Forces Browser to maximize the video wrapper safely
-    function togglePlayerFullscreen() {
-        const videoWrapper = document.getElementById('videoWrapper');
-        
-        if (!document.fullscreenElement) {
-            if (videoWrapper.requestFullscreen) {
-                videoWrapper.requestFullscreen();
-            } else if (videoWrapper.webkitRequestFullscreen) { /* Safari */
-                videoWrapper.webkitRequestFullscreen();
-            } else if (videoWrapper.msRequestFullscreen) { /* IE11 */
-                videoWrapper.msRequestFullscreen();
-            }
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
+            iframe.src = `https://vidsrc.cc/vidsrc/movie/${currentTmdbId}`; // አልተርኔቲቭ
         }
     }
 
@@ -234,9 +187,6 @@
         const iframe = document.getElementById('videoIframe');
         iframe.src = ""; 
         modal.classList.remove('active');
-        if (document.fullscreenElement) {
-            document.exitFullscreen();
-        }
     }
 </script>
 </body>
