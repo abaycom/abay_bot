@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CineScope - Premium Home Edition</title>
+    <title>CineScope - Premium Categories Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 30px; overflow-x: hidden; }
+        body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
 
         /* 👑 PRO NAVIGATION BAR */
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -20,52 +20,42 @@
 
         /* 🔍 SEARCH */
         header { display: flex; flex-direction: column; align-items: center; padding: 10px 20px; }
-        .search-container { width: 100%; max-width: 500px; margin-bottom: 20px; }
+        .search-container { width: 100%; max-width: 500px; margin-bottom: 10px; }
         .search-box { 
             width: 100%; padding: 12px 20px; border-radius: 30px; border: 1px solid #27272a; 
             background-color: #1c1a22; color: white; font-size: 14px; outline: none; transition: 0.3s;
         }
         .search-box:focus { border-color: #f59e0b; }
 
-        /* 🏷️ GENRE TAGS */
-        .genres-container { 
-            display: flex; gap: 10px; max-width: 1200px; margin: 0 auto 30px auto; 
-            padding: 0 20px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-        }
-        .genres-container::-webkit-scrollbar { display: none; }
-        .genre-btn { 
-            background: #1c1a22; color: #a1a1aa; border: 1px solid #27272a; 
-            padding: 8px 20px; border-radius: 25px; font-size: 13px; font-weight: 500; 
-            cursor: pointer; white-space: nowrap; transition: 0.2s;
-        }
-        .genre-btn:hover, .genre-btn.active { background: #2e2a38; border-color: #f59e0b; color: #fff; }
-
-        /* 🎬 HORIZONTAL SCROLL LISTS (ወደ ጎን እንዲደረደሩ የሚያደርገው) */
+        /* 🎬 MAIN CONTAINER & CATEGORIES SETUP */
         .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-        .section-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 15px; color: #fff; letter-spacing: -0.5px; }
         
-        /* 🔥 Horizontal Scrolling Wrapper */
+        /* እያንዳንዱ የካታጎሪ ክፍል ማሸጊያ */
+        .category-section { margin-bottom: 30px; }
+        .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; color: #fff; letter-spacing: -0.3px; }
+        
+        /* 🔥 ወደ ጎን የሚሳበው ረድፍ */
         .movie-scroll-wrapper {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             overflow-x: auto;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             scrollbar-width: none; /* Firefox */
             -webkit-overflow-scrolling: touch;
         }
         .movie-scroll-wrapper::-webkit-scrollbar { display: none; } /* Chrome, Safari */
 
-        /* 📱 CARD DESIGN (Optimized Size) */
-        .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; flex: 0 0 160px; width: 160px; }
-        .image-wrapper { width: 100%; height: 230px; border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
+        /* 📱 CARD DESIGN */
+        .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; flex: 0 0 145px; width: 145px; }
+        .image-wrapper { width: 100%; height: 210px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
         .movie-card img { width: 100%; height: 100%; object-fit: cover; }
         .card-rating { 
-            position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.5); 
-            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 3px 8px; border-radius: 10px; 
-            font-size: 11px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 3px;
+            position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 2px 6px; border-radius: 8px; 
+            font-size: 10px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 2px;
         }
-        .movie-info { padding: 8px 2px 0 2px; }
-        .movie-title { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .movie-info { padding: 6px 2px 0 2px; }
+        .movie-title { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
         .movie-meta { font-size: 11px; color: #71717a; }
 
         /* 📺 CINEMATIC VIDEO PLAYER MODAL */
@@ -76,7 +66,7 @@
         .player-modal.active { display: flex; }
         .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
 
-        /* 📱 Normal Portrait First: መጀመሪያ ሲከፈት ቀጥ ብሎ እንዲቆም */
+        /* Portrait First Mode (መጀመሪያ ሲከፈት ቀጥ ይላል፤ ስልኩ ሲዞር አብሮ ይዞራል) */
         .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin: auto 0; }
         .iframe-container iframe { position: absolute; top:0; left:0; width: 100%; height: 100%; border: none; }
 
@@ -87,12 +77,16 @@
             padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
 
+        /* ሰርች ሲደረግ ብቻ የሚታይ ውጤት ማሳያ ግሪድ */
+        .search-results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; display: none; }
+
         @media (min-width: 768px) {
-            .movie-card { flex: 0 0 180px; width: 180px; }
-            .image-wrapper { height: 260px; }
+            .movie-card { flex: 0 0 170px; width: 170px; }
+            .image-wrapper { height: 250px; }
             .modal-content { width: 85%; height: auto; max-width: 950px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
             .iframe-container { padding-top: 56.25%; margin: 0; }
             .close-btn { position: absolute; top: 15px; right: 15px; border-radius: 8px; }
+            .search-results-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
         }
     </style>
 </head>
@@ -116,21 +110,36 @@
     </div>
 </header>
 
-<!-- Genre Filters -->
-<div class="genres-container">
-    <button class="genre-btn active" onclick="filterGenre('all')">All</button>
-    <button class="genre-btn" onclick="filterGenre('28')">Action</button>
-    <button class="genre-btn" onclick="filterGenre('12')">Adventure</button>
-    <button class="genre-btn" onclick="filterGenre('16')">Animation</button>
-    <button class="genre-btn" onclick="filterGenre('35')">Comedy</button>
-    <button class="genre-btn" onclick="filterGenre('80')">Crime</button>
-    <button class="genre-btn" onclick="filterGenre('27')">Horror</button>
-</div>
+<main class="main-container" id="mainContent">
+    <!-- ሰርች ሲደረግ ብቻ የሚሞላ ክፍል -->
+    <div id="searchSection" style="display: none; margin-bottom: 30px;">
+        <h2 class="section-title" id="searchTitle">Search Results</h2>
+        <div class="search-results-grid" id="searchResultsDisplay"></div>
+    </div>
 
-<main class="main-container">
-    <h2 class="section-title" id="listTitle">Now Playing in Theaters</h2>
-    <!-- 🔥 Wrapped in a horizontal scroll container -->
-    <div class="movie-scroll-wrapper" id="movieDisplay"></div>
+    <!-- 1️⃣ Now Playing Section -->
+    <div class="category-section">
+        <h2 class="section-title">Now Playing in Theaters</h2>
+        <div class="movie-scroll-wrapper" id="nowPlayingDisplay"></div>
+    </div>
+
+    <!-- 2️⃣ Action Movies Section -->
+    <div class="category-section">
+        <h2 class="section-title">⚡ Action Thrillers</h2>
+        <div class="movie-scroll-wrapper" id="actionDisplay"></div>
+    </div>
+
+    <!-- 3️⃣ Animation Movies Section -->
+    <div class="category-section">
+        <h2 class="section-title">🧸 Family & Animation</h2>
+        <div class="movie-scroll-wrapper" id="animationDisplay"></div>
+    </div>
+
+    <!-- 4️⃣ Horror Movies Section -->
+    <div class="category-section">
+        <h2 class="section-title">👻 Horror & Mystery</h2>
+        <div class="movie-scroll-wrapper" id="horrorDisplay"></div>
+    </div>
 </main>
 
 <!-- Fullscreen Video Player Modal -->
@@ -138,8 +147,8 @@
     <div class="modal-content">
         <button class="close-btn" onclick="closePlayer()">✕ Close</button>
         <div class="iframe-container">
-            <!-- 🛡️ ANTI-PAGE-HIJACK SANDBOX RULE: Blocks unwanted background tab redirects -->
-            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation-by-user-activation"></iframe>
+            <!-- ✅ FIX: Sandbox attribute removed to prevent "Playback blocked" bug and allow all players to work perfectly -->
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture"></iframe>
         </div>
     </div>
 </div>
@@ -147,47 +156,26 @@
 <script>
     const API_KEY = "f519e4673f7652685cfc57630b824606";
 
-    // 🛑 Anti-Hijack Tab Blocker: Prevents ad-servers from unloading your main stream site
+    // ማስታወቂያ በራሱ ጊዜ ገጽ እንዳይቀይር መከላከያ ጥበቃ
     window.open = function() { return null; };
     window.onbeforeunload = function() {
         return "Are you sure you want to leave?";
     };
 
     window.onload = function() {
-        loadMovies();
+        // ሁሉንም ካታጎሪዎች በአንድ ጊዜ መጫን
+        loadCategory(`https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`, "nowPlayingDisplay");
+        loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28&language=en-US`, "actionDisplay");
+        loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`, "animationDisplay");
+        loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=27&language=en-US`, "horrorDisplay");
     };
 
-    function loadMovies() {
-        const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`;
-        fetchMovies(url, "Now Playing in Theaters");
-    }
-
-    function filterGenre(genreId) {
-        document.querySelectorAll('.genre-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        
-        if(genreId === 'all') {
-            loadMovies();
-        } else {
-            const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=${genreId}&language=en-US`;
-            fetchMovies(url, "Filtered Movies");
-        }
-    }
-
-    function startSearch() {
-        const query = document.getElementById('searchQuery').value;
-        if(query.trim() !== "") {
-            fetchMovies(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, `Results for "${query}"`);
-        }
-    }
-
-    function fetchMovies(url, titleText) {
-        document.getElementById('listTitle').innerText = titleText;
+    function loadCategory(url, targetId) {
         fetch(url)
         .then(res => res.json())
         .then(data => {
             const movies = data.results;
-            const display = document.getElementById('movieDisplay');
+            const display = document.getElementById(targetId);
             display.innerHTML = ""; 
 
             movies.forEach(movie => {
@@ -213,6 +201,27 @@
                 display.appendChild(card);
             });
         });
+    }
+
+    function startSearch() {
+        const query = document.getElementById('searchQuery').value;
+        const searchSection = document.getElementById('searchSection');
+        const searchResultsDisplay = document.getElementById('searchResultsDisplay');
+        const searchTitle = document.getElementById('searchTitle');
+
+        if(query.trim() !== "") {
+            searchTitle.innerText = `Results for "${query}"`;
+            searchSection.style.display = "block";
+            searchResultsDisplay.style.display = "grid";
+            
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
+            loadCategory(url, "searchResultsDisplay");
+            
+            // ወደ ላይ ራሱ ስክሮል እንዲያደርግ
+            searchSection.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            searchSection.style.display = "none";
+        }
     }
 
     function playMovie(tmdbId) {
