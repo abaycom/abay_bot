@@ -3,85 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STREAM SPHERE | Premium Ad-Free</title>
+    <title>CineScope - Stream Movies & TV Shows</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background-color: #09090b; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
 
-        /* UI Styling */
-        header { 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 40px 20px; background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, rgba(9, 9, 11, 0) 100%);
-            margin-bottom: 20px;
+        /* 👑 PRO NAVIGATION BAR */
+        nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px; max-width: 1200px; margin: 0 auto;
         }
-        header h1 { 
-            font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 20px;
-            background: linear-gradient(to right, #a78bfa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.5rem; color: #fff; }
+        .logo span { color: #f59e0b; } /* የወርቅ ከለር */
+        .logo-icon { width: 28px; height: 28px; background: #f59e0b; border-radius: 6px; display: grid; place-items: center; color: #000; font-weight: bold; }
+        
+        .menu-icon { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+        .menu-icon div { width: 25px; height: 3px; background-color: white; border-radius: 2px; }
 
-        .search-container { width: 100%; max-width: 550px; position: relative; }
+        /* 🔍 SEARCH & HERO AREA */
+        header { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .search-container { width: 100%; max-width: 500px; margin-bottom: 30px; }
         .search-box { 
-            width: 100%; padding: 15px 25px; border-radius: 30px; border: 1px solid #27272a; 
-            background-color: #18181b; color: white; font-size: 16px; outline: none; 
-            transition: all 0.3s ease;
+            width: 100%; padding: 14px 25px; border-radius: 30px; border: 1px solid #27272a; 
+            background-color: #1c1a22; color: white; font-size: 15px; outline: none; transition: 0.3s;
         }
-        .search-box:focus { border-color: #7c3aed; box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); background-color: #27272a; }
+        .search-box:focus { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
 
-        .main-container { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
-        .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #e4e4e7; border-left: 4px solid #7c3aed; padding-left: 10px; }
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 25px; }
-
-        .movie-card { 
-            background-color: #18181b; border-radius: 12px; overflow: hidden; cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #27272a;
+        /* 🏷️ GENRE TAGS (ልክ እንደ ፎቶው) */
+        .genres-container { 
+            display: flex; gap: 12px; max-width: 1200px; margin: 0 auto 40px auto; 
+            padding: 0 20px; overflow-x: auto; scrollbar-width: none;
         }
-        .movie-card:hover { 
-            transform: translateY(-8px); border-color: #7c3aed; 
-            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4); 
+        .genres-container::-webkit-scrollbar { display: none; }
+        .genre-btn { 
+            background: #1c1a22; color: #e4e4e7; border: 1px solid #27272a; 
+            padding: 10px 22px; border-radius: 25px; font-size: 14px; font-weight: 500; 
+            cursor: pointer; white-space: nowrap; transition: 0.2s;
         }
-        .image-wrapper { width: 100%; height: 285px; overflow: hidden; }
-        .movie-card img { width: 100%; height: 100%; object-fit: cover; }
-        .movie-info { padding: 15px; }
-        .movie-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .movie-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: #a1a1aa; }
-        .rating { background: #27272a; padding: 2px 6px; border-radius: 4px; color: #f59e0b; font-weight: bold; }
+        .genre-btn:hover, .genre-btn.active { background: #2e2a38; border-color: #f59e0b; color: #fff; }
 
-        /* Video Player Modal */
+        /* 🎬 MOVIE GRID SECTION */
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .section-title { font-size: 1.6rem; font-weight: 600; margin-bottom: 25px; color: #fff; letter-spacing: -0.5px; }
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 25px; }
+
+        /* 📱 PROFESSIONAL MOVIE CARD */
+        .movie-card { background: transparent; cursor: pointer; position: relative; }
+        .image-wrapper { width: 100%; height: 250px; border-radius: 16px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+        .movie-card:hover img { transform: scale(1.06); }
+        
+        .card-rating { 
+            position: absolute; top: 12px; right: 12px; background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(8px); padding: 4px 10px; border-radius: 12px; 
+            font-size: 12px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 4px;
+        }
+
+        .movie-info { padding: 12px 4px 0 4px; }
+        .movie-title { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .movie-meta { font-size: 13px; color: #71717a; }
+
+        /* 📺 CINEMATIC MODAL PLAYER */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(9, 9, 11, 0.98); z-index: 1000; justify-content: center; align-items: center;
-            backdrop-filter: blur(15px);
+            background: rgba(5, 5, 8, 0.95); z-index: 1000; justify-content: center; align-items: center;
+            backdrop-filter: blur(20px);
         }
         .player-modal.active { display: flex; }
-        
-        .modal-content { width: 95%; max-width: 950px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; }
+        .modal-content { width: 95%; max-width: 950px; background: #131217; border-radius: 20px; overflow: hidden; border: 1px solid #27272a; }
         .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
         
-        /* 🛑 FIX: Sandbox fully removed to satisfy the server request, allowing full playability */
+        /* ⚙️ FULL FEATURES ENABLED: Speed, Quality, Rotation and Fullscreen features active */
         .iframe-container iframe { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; 
         }
 
-        .server-control { display: flex; gap: 10px; padding: 15px 20px; background: #18181b; border-top: 1px solid #27272a; align-items: center; justify-content: space-between; }
-        .server-buttons { display: flex; gap: 8px; }
-        .server-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .server-btn.active { background: #7c3aed; border-color: #a78bfa; }
-        .close-btn { background: #ef4444; color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .server-control { display: flex; padding: 15px 20px; background: #131217; justify-content: flex-end; }
+        .close-btn { background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; }
     </style>
 </head>
 <body>
 
+<!-- Navigation -->
+<nav>
+    <div class="logo">
+        <div class="logo-icon">🎬</div> Cine<span>Scope</span>
+    </div>
+    <div class="menu-icon">
+        <div></div>
+        <div></div>
+        <div></div>
+    </div>
+</nav>
+
 <header>
-    <h1>STREAM SPHERE</h1>
     <div class="search-container">
         <input type="text" id="searchQuery" class="search-box" placeholder="Search movies..." onkeyup="if(event.key === 'Enter') startSearch()">
     </div>
 </header>
 
+<!-- Genre Filters -->
+<div class="genres-container">
+    <button class="genre-btn active" onclick="filterGenre('all')">All</button>
+    <button class="genre-btn" onclick="filterGenre('28')">Action</button>
+    <button class="genre-btn" onclick="filterGenre('12')">Adventure</button>
+    <button class="genre-btn" onclick="filterGenre('16')">Animation</button>
+    <button class="genre-btn" onclick="filterGenre('35')">Comedy</button>
+    <button class="genre-btn" onclick="filterGenre('80')">Crime</button>
+    <button class="genre-btn" onclick="filterGenre('27')">Horror</button>
+</div>
+
 <main class="main-container">
-    <h2 class="section-title" id="listTitle">Trending Movies</h2>
+    <h2 class="section-title" id="listTitle">Now Playing in Theaters</h2>
     <div class="movie-grid" id="movieDisplay"></div>
 </main>
 
@@ -89,15 +124,10 @@
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
         <div class="iframe-container">
-            <!-- Sandbox removed completely -->
-            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+            <!-- ⚡ ALLOWED EVERYTHING: Gives the player capability for rotation, speed and quality switching natively -->
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture; screen-wake-lock"></iframe>
         </div>
         <div class="server-control">
-            <div class="server-buttons">
-                <span style="font-size: 13px; color: #a1a1aa; align-self: center; margin-right: 5px;">Server:</span>
-                <button class="server-btn active" onclick="switchServer(1)">Server 1 (VidSrc Pro)</button>
-                <button class="server-btn" onclick="switchServer(2)">Server 2 (VidSrc PM)</button>
-            </div>
             <button class="close-btn" onclick="closePlayer()">Close</button>
         </div>
     </div>
@@ -105,19 +135,35 @@
 
 <script>
     const API_KEY = "f519e4673f7652685cfc57630b824606";
-    let currentTmdbId = null;
+    let activeGenre = 'all';
 
-    // Heavy blocker script to catch popup attempts at the browser level
     window.open = function() { return null; };
 
     window.onload = function() {
-        fetchMovies(`https://api.themoviedb.org/3/movie/popular?api_key=${API_KEY}&language=en-US&page=1`, "Trending Movies");
+        loadMovies();
     };
+
+    function loadMovies() {
+        const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`;
+        fetchMovies(url, "Now Playing in Theaters");
+    }
+
+    function filterGenre(genreId) {
+        document.querySelectorAll('.genre-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        if(genreId === 'all') {
+            loadMovies();
+        } else {
+            const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=${genreId}&language=en-US`;
+            fetchMovies(url, "Filtered Movies");
+        }
+    }
 
     function startSearch() {
         const query = document.getElementById('searchQuery').value;
         if(query.trim() !== "") {
-            fetchMovies(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, `Search Results for: "${query}"`);
+            fetchMovies(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, `Results for "${query}"`);
         }
     }
 
@@ -142,14 +188,12 @@
                 card.onclick = () => playMovie(movie.id); 
                 card.innerHTML = `
                     <div class="image-wrapper">
+                        <span class="card-rating">★ ${rating}</span>
                         <img src="${poster}" alt="${movie.title}" loading="lazy">
                     </div>
                     <div class="movie-info">
                         <div class="movie-title">${movie.title}</div>
-                        <div class="movie-meta">
-                            <span>${year}</span>
-                            <span class="rating">★ ${rating}</span>
-                        </div>
+                        <div class="movie-meta">${year} • Cinema Movie</div>
                     </div>
                 `;
                 display.appendChild(card);
@@ -157,28 +201,14 @@
         });
     }
 
+    // ⚡ AUTO SERVER PLAY INITIATOR
     function playMovie(tmdbId) {
-        currentTmdbId = tmdbId;
         const modal = document.getElementById('playerModal');
-        modal.classList.add('active');
-        switchServer(1); 
-    }
-
-    function switchServer(serverNum) {
         const iframe = document.getElementById('videoIframe');
-        const buttons = document.querySelectorAll('.server-btn');
         
-        buttons.forEach((btn, index) => {
-            if(index === (serverNum - 1)) btn.classList.add('active');
-            else btn.classList.remove('active');
-        });
-
-        // Updated to pristine multi-mirror sources that bypass the setup block
-        if(serverNum === 1) {
-            iframe.src = `https://vidsrc.pro/embed/movie/${currentTmdbId}`; 
-        } else if(serverNum === 2) {
-            iframe.src = `https://vidsrc.pm/embed/movie/${currentTmdbId}`; 
-        }
+        modal.classList.add('active');
+        // Auto loads your working Server 2 setup right away!
+        iframe.src = `https://vidsrc.pm/embed/movie/${tmdbId}`; 
     }
 
     function closePlayer() {
