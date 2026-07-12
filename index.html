@@ -2,86 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CineScope - Stream Movies & TV Shows</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
+        body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 30px; overflow-x: hidden; }
 
         /* 👑 PRO NAVIGATION BAR */
         nav {
             display: flex; justify-content: space-between; align-items: center;
             padding: 20px; max-width: 1200px; margin: 0 auto;
         }
-        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.5rem; color: #fff; }
-        .logo span { color: #f59e0b; } /* የወርቅ ከለር */
-        .logo-icon { width: 28px; height: 28px; background: #f59e0b; border-radius: 6px; display: grid; place-items: center; color: #000; font-weight: bold; }
+        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.4rem; color: #fff; letter-spacing: -0.5px; }
+        .logo span { color: #f59e0b; } 
+        .logo-icon { width: 26px; height: 26px; background: #f59e0b; border-radius: 6px; display: grid; place-items: center; color: #000; font-weight: bold; font-size: 14px; }
         
-        .menu-icon { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
-        .menu-icon div { width: 25px; height: 3px; background-color: white; border-radius: 2px; }
+        .menu-icon { display: flex; flex-direction: column; gap: 5px; cursor: pointer; }
+        .menu-icon div { width: 22px; height: 2.5px; background-color: white; border-radius: 2px; }
 
-        /* 🔍 SEARCH & HERO AREA */
-        header { display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .search-container { width: 100%; max-width: 500px; margin-bottom: 30px; }
+        /* 🔍 SEARCH */
+        header { display: flex; flex-direction: column; align-items: center; padding: 10px 20px; }
+        .search-container { width: 100%; max-width: 500px; margin-bottom: 20px; }
         .search-box { 
-            width: 100%; padding: 14px 25px; border-radius: 30px; border: 1px solid #27272a; 
-            background-color: #1c1a22; color: white; font-size: 15px; outline: none; transition: 0.3s;
+            width: 100%; padding: 12px 20px; border-radius: 30px; border: 1px solid #27272a; 
+            background-color: #1c1a22; color: white; font-size: 14px; outline: none; transition: 0.3s;
         }
-        .search-box:focus { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
+        .search-box:focus { border-color: #f59e0b; }
 
-        /* 🏷️ GENRE TAGS (ልክ እንደ ፎቶው) */
+        /* 🏷️ GENRE TAGS (ልክ እንደ ፎቶው ከጎን ወደ ጎን የሚሳብ) */
         .genres-container { 
-            display: flex; gap: 12px; max-width: 1200px; margin: 0 auto 40px auto; 
-            padding: 0 20px; overflow-x: auto; scrollbar-width: none;
+            display: flex; gap: 10px; max-width: 1200px; margin: 0 auto 30px auto; 
+            padding: 0 20px; overflow-x: auto; scroll-bar-width: none;
+            -webkit-overflow-scrolling: touch;
         }
         .genres-container::-webkit-scrollbar { display: none; }
         .genre-btn { 
-            background: #1c1a22; color: #e4e4e7; border: 1px solid #27272a; 
-            padding: 10px 22px; border-radius: 25px; font-size: 14px; font-weight: 500; 
+            background: #1c1a22; color: #a1a1aa; border: 1px solid #27272a; 
+            padding: 8px 20px; border-radius: 25px; font-size: 13px; font-weight: 500; 
             cursor: pointer; white-space: nowrap; transition: 0.2s;
         }
         .genre-btn:hover, .genre-btn.active { background: #2e2a38; border-color: #f59e0b; color: #fff; }
 
         /* 🎬 MOVIE GRID SECTION */
-        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-        .section-title { font-size: 1.6rem; font-weight: 600; margin-bottom: 25px; color: #fff; letter-spacing: -0.5px; }
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 25px; }
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+        .section-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; color: #fff; letter-spacing: -0.5px; }
+        
+        /* 📱 MOBILE OPTIMIZED GRID: በስልክ 2 ፊልም ብቻ ጎን ለጎን በትልቁ የሚያሳይ */
+        .movie-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 16px; 
+        }
 
-        /* 📱 PROFESSIONAL MOVIE CARD */
-        .movie-card { background: transparent; cursor: pointer; position: relative; }
-        .image-wrapper { width: 100%; height: 250px; border-radius: 16px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.05); }
-        .movie-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-        .movie-card:hover img { transform: scale(1.06); }
+        /* 📱 MOBILE CARD DESIGN (ልክ እንደ ፎቶው) */
+        .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; }
+        .image-wrapper { width: 100%; height: 240px; border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; }
         
         .card-rating { 
-            position: absolute; top: 12px; right: 12px; background: rgba(0, 0, 0, 0.6); 
-            backdrop-filter: blur(8px); padding: 4px 10px; border-radius: 12px; 
-            font-size: 12px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 4px;
+            position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.5); 
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 3px 8px; border-radius: 10px; 
+            font-size: 11px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 3px;
         }
 
-        .movie-info { padding: 12px 4px 0 4px; }
-        .movie-title { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
-        .movie-meta { font-size: 13px; color: #71717a; }
+        .movie-info { padding: 10px 2px 0 2px; }
+        .movie-title { font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .movie-meta { font-size: 12px; color: #71717a; }
 
-        /* 📺 CINEMATIC MODAL PLAYER */
+        /* 📺 FULL SCREEN VIDEO PLAYER MODAL */
         .player-modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(5, 5, 8, 0.95); z-index: 1000; justify-content: center; align-items: center;
-            backdrop-filter: blur(20px);
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: #000000; z-index: 2000; justify-content: center; align-items: center;
         }
         .player-modal.active { display: flex; }
-        .modal-content { width: 95%; max-width: 950px; background: #131217; border-radius: 20px; overflow: hidden; border: 1px solid #27272a; }
-        .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
+        .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
         
-        /* ⚙️ FULL FEATURES ENABLED: Speed, Quality, Rotation and Fullscreen features active */
-        .iframe-container iframe { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; 
+        /* ማጫወቻው በስልክ ሙሉ ስክሪን እንዲሆን */
+        .iframe-container { position: relative; width: 100%; flex-grow: 1; background: #000; display: flex; align-items: center; }
+        .iframe-container iframe { width: 100%; height: 100%; border: none; }
+
+        /* የclose በተን ማስተካከያ (ቪዲዮው ላይ እንዳይጋርድ ከላይ ተንሳፋፊ የተደረገ) */
+        .close-btn { 
+            position: absolute; top: 20px; right: 20px; z-index: 2001;
+            background: rgba(239, 68, 68, 0.85); backdrop-filter: blur(5px);
+            color: white; border: none; padding: 8px 16px; border-radius: 20px; 
+            cursor: pointer; font-size: 13px; font-weight: 600; 
         }
 
-        .server-control { display: flex; padding: 15px 20px; background: #131217; justify-content: flex-end; }
-        .close-btn { background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        /* ኮምፒውተር ላይ ሲከፈት መልሶ Grid እንዲያስተካክል */
+        @media (min-width: 768px) {
+            .movie-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; }
+            .image-wrapper { height: 270px; }
+            .modal-content { width: 90%; height: auto; max-width: 900px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
+            .iframe-container { padding-top: 56.25%; flex-grow: unset; }
+            .close-btn { position: static; margin: 15px; align-self: flex-end; border-radius: 8px; }
+        }
     </style>
 </head>
 <body>
@@ -104,7 +121,7 @@
     </div>
 </header>
 
-<!-- Genre Filters -->
+<!-- Genre Filters (ልክ እንደ ፎቶው) -->
 <div class="genres-container">
     <button class="genre-btn active" onclick="filterGenre('all')">All</button>
     <button class="genre-btn" onclick="filterGenre('28')">Action</button>
@@ -120,22 +137,19 @@
     <div class="movie-grid" id="movieDisplay"></div>
 </main>
 
-<!-- Video Player Modal -->
+<!-- Fullscreen Video Player Modal -->
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
+        <button class="close-btn" onclick="closePlayer()">✕ Close</button>
         <div class="iframe-container">
-            <!-- ⚡ ALLOWED EVERYTHING: Gives the player capability for rotation, speed and quality switching natively -->
+            <!-- 🔄 SCREEN ROTATION & FULLSCREEN FULLY ENABLED -->
             <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture; screen-wake-lock"></iframe>
-        </div>
-        <div class="server-control">
-            <button class="close-btn" onclick="closePlayer()">Close</button>
         </div>
     </div>
 </div>
 
 <script>
     const API_KEY = "f519e4673f7652685cfc57630b824606";
-    let activeGenre = 'all';
 
     window.open = function() { return null; };
 
@@ -193,7 +207,7 @@
                     </div>
                     <div class="movie-info">
                         <div class="movie-title">${movie.title}</div>
-                        <div class="movie-meta">${year} • Cinema Movie</div>
+                        <div class="movie-meta">${year} • Movie</div>
                     </div>
                 `;
                 display.appendChild(card);
@@ -201,14 +215,19 @@
         });
     }
 
-    // ⚡ AUTO SERVER PLAY INITIATOR
     function playMovie(tmdbId) {
         const modal = document.getElementById('playerModal');
         const iframe = document.getElementById('videoIframe');
         
         modal.classList.add('active');
-        // Auto loads your working Server 2 setup right away!
         iframe.src = `https://vidsrc.pm/embed/movie/${tmdbId}`; 
+        
+        // 🔄 Auto-request orientation lock or browser full-screen if supported
+        if (modal.requestFullscreen) {
+            modal.requestFullscreen();
+        } else if (modal.webkitRequestFullscreen) {
+            modal.webkitRequestFullscreen();
+        }
     }
 
     function closePlayer() {
@@ -216,6 +235,12 @@
         const iframe = document.getElementById('videoIframe');
         iframe.src = ""; 
         modal.classList.remove('active');
+        
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        }
     }
 </script>
 </body>
