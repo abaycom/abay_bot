@@ -1,6 +1,5 @@
-
 Flask
 Flask-CORS
-playwright
 deep-translator
 gTTS
+requests
