@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CineScope - Premium MX Player Edition</title>
+    <title>CineScope - Premium Home Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
@@ -40,67 +40,59 @@
         }
         .genre-btn:hover, .genre-btn.active { background: #2e2a38; border-color: #f59e0b; color: #fff; }
 
-        /* 🎬 MOVIE GRID SECTION */
+        /* 🎬 HORIZONTAL SCROLL LISTS (ወደ ጎን እንዲደረደሩ የሚያደርገው) */
         .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-        .section-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; color: #fff; letter-spacing: -0.5px; }
-        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .section-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 15px; color: #fff; letter-spacing: -0.5px; }
+        
+        /* 🔥 Horizontal Scrolling Wrapper */
+        .movie-scroll-wrapper {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            scrollbar-width: none; /* Firefox */
+            -webkit-overflow-scrolling: touch;
+        }
+        .movie-scroll-wrapper::-webkit-scrollbar { display: none; } /* Chrome, Safari */
 
-        /* 📱 MOBILE CARD DESIGN */
-        .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; }
-        .image-wrapper { width: 100%; height: 240px; border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
+        /* 📱 CARD DESIGN (Optimized Size) */
+        .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; flex: 0 0 160px; width: 160px; }
+        .image-wrapper { width: 100%; height: 230px; border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
         .movie-card img { width: 100%; height: 100%; object-fit: cover; }
         .card-rating { 
             position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.5); 
             backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 3px 8px; border-radius: 10px; 
             font-size: 11px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 3px;
         }
-        .movie-info { padding: 10px 2px 0 2px; }
-        .movie-title { font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-        .movie-meta { font-size: 12px; color: #71717a; }
+        .movie-info { padding: 8px 2px 0 2px; }
+        .movie-title { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .movie-meta { font-size: 11px; color: #71717a; }
 
-        /* 📱 ⚡ MX PLAYER AUTOMATIC ROTATION SYSTEM (FOR PHONES) */
+        /* 📺 CINEMATIC VIDEO PLAYER MODAL */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: #000000; z-index: 99999; justify-content: center; align-items: center;
         }
         .player-modal.active { display: flex; }
-        .modal-content { width: 100%; height: 100%; background: #000; position: relative; overflow: hidden; }
+        .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
 
-        /* 🔄 Forced Landscape Mode for Mobile Browsers */
-        @media (max-width: 767px) {
-            .iframe-container {
-                position: absolute;
-                top: 50%; left: 50%;
-                width: 100vh; height: 100vw; /* Dimensions inverted */
-                transform: translate(-50%, -50%) rotate(90deg); /* Forced rotation like MX Player */
-                transform-origin: center center;
-                background: #000;
-            }
-            /* Floating MX-style close button over the rotated view */
-            .close-btn { 
-                position: absolute; top: 15px; left: 15px; z-index: 200000;
-                background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
-                color: #f59e0b; border: 1px solid rgba(255,255,255,0.2); 
-                width: 40px; height: 40px; border-radius: 50%; 
-                font-size: 18px; font-weight: bold; cursor: pointer;
-                display: flex; align-items: center; justify-content: center;
-                transform: rotate(90deg); /* Matches the view angle */
-            }
+        /* 📱 Normal Portrait First: መጀመሪያ ሲከፈት ቀጥ ብሎ እንዲቆም */
+        .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin: auto 0; }
+        .iframe-container iframe { position: absolute; top:0; left:0; width: 100%; height: 100%; border: none; }
+
+        /* Floating Close button */
+        .close-btn { 
+            position: absolute; top: 20px; right: 20px; z-index: 200000;
+            background: rgba(239, 68, 68, 0.9); color: white; border: none;
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
 
-        .iframe-container iframe { width: 100%; height: 100%; border: none; }
-
-        /* Laptop or Desktop Normal Grid Mode Override */
         @media (min-width: 768px) {
-            .movie-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; }
-            .image-wrapper { height: 270px; }
+            .movie-card { flex: 0 0 180px; width: 180px; }
+            .image-wrapper { height: 260px; }
             .modal-content { width: 85%; height: auto; max-width: 950px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
-            .iframe-container { position: relative; width: 100%; padding-top: 56.25%; }
-            .close-btn { 
-                position: absolute; top: 15px; right: 15px; z-index: 100;
-                background: rgba(239, 68, 68, 0.9); color: white; border: none;
-                padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
-            }
+            .iframe-container { padding-top: 56.25%; margin: 0; }
+            .close-btn { position: absolute; top: 15px; right: 15px; border-radius: 8px; }
         }
     </style>
 </head>
@@ -137,16 +129,17 @@
 
 <main class="main-container">
     <h2 class="section-title" id="listTitle">Now Playing in Theaters</h2>
-    <div class="movie-grid" id="movieDisplay"></div>
+    <!-- 🔥 Wrapped in a horizontal scroll container -->
+    <div class="movie-scroll-wrapper" id="movieDisplay"></div>
 </main>
 
-<!-- Fullscreen MX-Style Video Player Modal -->
+<!-- Fullscreen Video Player Modal -->
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
-        <button class="close-btn" onclick="closePlayer()">✕</button>
+        <button class="close-btn" onclick="closePlayer()">✕ Close</button>
         <div class="iframe-container">
-            <!-- 🛠️ FULL CAPABILITIES RE-ENABLED -->
-            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture"></iframe>
+            <!-- 🛡️ ANTI-PAGE-HIJACK SANDBOX RULE: Blocks unwanted background tab redirects -->
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation-by-user-activation"></iframe>
         </div>
     </div>
 </div>
@@ -154,7 +147,11 @@
 <script>
     const API_KEY = "f519e4673f7652685cfc57630b824606";
 
+    // 🛑 Anti-Hijack Tab Blocker: Prevents ad-servers from unloading your main stream site
     window.open = function() { return null; };
+    window.onbeforeunload = function() {
+        return "Are you sure you want to leave?";
+    };
 
     window.onload = function() {
         loadMovies();
@@ -223,15 +220,7 @@
         const iframe = document.getElementById('videoIframe');
         
         modal.classList.add('active');
-        // Auto loads the bulletproof Server 2 source
         iframe.src = `https://vidsrc.pm/embed/movie/${tmdbId}`; 
-        
-        // Native full-screen browser trigger
-        if (modal.requestFullscreen) {
-            modal.requestFullscreen();
-        } else if (modal.webkitRequestFullscreen) {
-            modal.webkitRequestFullscreen();
-        }
     }
 
     function closePlayer() {
@@ -239,12 +228,6 @@
         const iframe = document.getElementById('videoIframe');
         iframe.src = ""; 
         modal.classList.remove('active');
-        
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        }
     }
 </script>
 </body>
