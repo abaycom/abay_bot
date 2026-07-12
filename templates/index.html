@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CineScope - Live Amharic AI Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.4rem; color: #fff; letter-spacing: -0.5px; }
+        .logo span { color: #f59e0b; } 
+        .logo-icon { width: 26px; height: 26px; background: #f59e0b; border-radius: 6px; display: grid; place-items: center; color: #000; font-weight: bold; font-size: 14px; }
+        .menu-icon { display: flex; flex-direction: column; gap: 5px; cursor: pointer; }
+        .menu-icon div { width: 22px; height: 2.5px; background-color: white; border-radius: 2px; }
+        header { display: flex; flex-direction: column; align-items: center; padding: 10px 20px; }
+        .search-container { width: 100%; max-width: 500px; margin-bottom: 10px; }
+        .search-box { width: 100%; padding: 12px 20px; border-radius: 30px; border: 1px solid #27272a; background-color: #1c1a22; color: white; font-size: 14px; outline: none; transition: 0.3s; }
+        .search-box:focus { border-color: #f59e0b; }
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+        .category-section { margin-bottom: 30px; }
+        .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; color: #fff; letter-spacing: -0.3px; }
+        .movie-scroll-wrapper { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .movie-scroll-wrapper::-webkit-scrollbar { display: none; }
+        .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; flex: 0 0 145px; width: 145px; }
+        .image-wrapper { width: 100%; height: 210px; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
+        .movie-card img { width: 100%; height: 100%; object-fit: cover; }
+        .card-rating { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 2px; }
+        .movie-info { padding: 6px 2px 0 2px; }
+        .movie-title { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+        .movie-meta { font-size: 11px; color: #71717a; }
+        .player-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000000; z-index: 99999; justify-content: center; align-items: center; }
+        .player-modal.active { display: flex; }
+        .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
+        .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin: auto 0; }
+        .iframe-container iframe { position: absolute; top:0; left:0; width: 100%; height: 100%; border: none; }
+        .close-btn { position: absolute; top: 20px; right: 20px; z-index: 200000; background: rgba(239, 68, 68, 0.9); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .search-results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; display: none; }
+        
+        /* 🎙️ Live Status indicator */
+        .live-status { position: absolute; top: 20px; left: 20px; z-index: 200000; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.9); opacity: 0.8; } }
+
+        @media (min-width: 768px) {
+            .movie-card { flex: 0 0 170px; width: 170px; }
+            .image-wrapper { height: 250px; }
+            .modal-content { width: 85%; height: auto; max-width: 950px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
+            .iframe-container { padding-top: 56.25%; margin: 0; }
+            .close-btn { position: absolute; top: 15px; right: 15px; border-radius: 8px; }
+            .search-results-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo"><div class="logo-icon">🎬</div> Cine<span>Scope</span></div>
+    <div class="menu-icon"><div></div><div></div><div></div></div>
+</nav>
+
+<header>
+    <div class="search-container">
+        <input type="text" id="searchQuery" class="search-box" placeholder="Search movies..." onkeyup="if(event.key === 'Enter') startSearch()">
+    </div>
+</header>
+
+<main class="main-container" id="mainContent">
+    <div id="searchSection" style="display: none; margin-bottom: 30px;">
+        <h2 class="section-title" id="searchTitle">Search Results</h2>
+        <div class="search-results-grid" id="searchResultsDisplay"></div>
+    </div>
+    <div class="category-section">
+        <h2 class="section-title">Now Playing in Theaters</h2>
+        <div class="movie-scroll-wrapper" id="nowPlayingDisplay"></div>
+    </div>
+    <div class="category-section">
+        <h2 class="section-title">⚡ Action Thrillers</h2>
+        <div class="movie-scroll-wrapper" id="actionDisplay"></div>
+    </div>
+    <div class="category-section">
+        <h2 class="section-title">🧸 Family & Animation</h2>
+        <div class="movie-scroll-wrapper" id="animationDisplay"></div>
+    </div>
+    <div class="category-section">
+        <h2 class="section-title">👻 Horror & Mystery</h2>
+        <div class="movie-scroll-wrapper" id="horrorDisplay"></div>
+    </div>
+</main>
+
+<div class="player-modal" id="playerModal">
+    <div class="modal-content">
+        <div class="live-status"><div class="dot"></div> Amharic Audio Live</div>
+        <button class="close-btn" onclick="closePlayer()">✕ Close</button>
+        <div class="iframe-container">
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_KEY = "f519e4673f7652685cfc57630b824606";
+    let audioPollInterval;
+    let lastAudioUrl = "";
+    const audioPlayer = new Audio();
+
+    window.open = function() { return null; };
+
+    window.onload = function() {
+        loadCategory(`https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`, "nowPlayingDisplay");
+        loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28&language=en-US`, "actionDisplay");
+        loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`, "animationDisplay");
+        loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=27&language=en-US`, "horrorDisplay");
+    };
+
+    function loadCategory(url, targetId) {
+        fetch(url).then(res => res.json()).then(data => {
+            const movies = data.results;
+            const display = document.getElementById(targetId);
+            display.innerHTML = ""; 
+            movies.forEach(movie => {
+                if(!movie.poster_path) return; 
+                const poster = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+                const year = movie.release_date ? movie.release_date.substring(0,4) : "N/A";
+                const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "0.0";
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.onclick = () => playMovie(movie.id); 
+                card.innerHTML = `
+                    <div class="image-wrapper">
+                        <span class="card-rating">★ ${rating}</span>
+                        <img src="${poster}" alt="${movie.title}" loading="lazy">
+                    </div>
+                    <div class="movie-info">
+                        <div class="movie-title">${movie.title}</div>
+                        <div class="movie-meta">${year} • Movie</div>
+                    </div>
+                `;
+                display.appendChild(card);
+            });
+        });
+    }
+
+    function startSearch() {
+        const query = document.getElementById('searchQuery').value;
+        const searchSection = document.getElementById('searchSection');
+        const searchResultsDisplay = document.getElementById('searchResultsDisplay');
+        const searchTitle = document.getElementById('searchTitle');
+        if(query.trim() !== "") {
+            searchTitle.innerText = `Results for "${query}"`;
+            searchSection.style.display = "block";
+            searchResultsDisplay.style.display = "grid";
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
+            loadCategory(url, "searchResultsDisplay");
+            searchSection.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            searchSection.style.display = "none";
+        }
+    }
+
+    function playMovie(tmdbId) {
+        const modal = document.getElementById('playerModal');
+        const iframe = document.getElementById('videoIframe');
+        modal.classList.add('active');
+        iframe.src = `https://vidsrc.pm/embed/movie/${tmdbId}`; 
+
+        // 💡 Python Backend ሰርቨርን መጥራት (በየቦታው እንዲሰራ Relative URL ተጠቅሜያለሁ)
+        fetch('/start_movie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: tmdbId, delay: 1.2 }) 
+        });
+
+        clearInterval(audioPollInterval);
+        audioPollInterval = setInterval(() => {
+            fetch('/get_audio')
+            .then(res => res.json())
+            .then(data => {
+                if (data.url && data.url !== lastAudioUrl) {
+                    lastAudioUrl = data.url;
+                    audioPlayer.src = data.url;
+                    audioPlayer.play();
+                }
+            });
+        }, 2000);
+    }
+
+    function closePlayer() {
+        const modal = document.getElementById('playerModal');
+        const iframe = document.getElementById('videoIframe');
+        iframe.src = ""; 
+        modal.classList.remove('active');
+        clearInterval(audioPollInterval);
+        audioPlayer.pause();
+    }
+</script>
+</body>
+</html>
