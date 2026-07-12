@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CineScope - Premium Categories Edition</title>
+    <title>CineScope - Auto Server & Rotation Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
@@ -27,23 +27,20 @@
         }
         .search-box:focus { border-color: #f59e0b; }
 
-        /* 🎬 MAIN CONTAINER & CATEGORIES SETUP */
+        /* 🎬 MAIN CONTAINER */
         .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-        
-        /* እያንዳንዱ የካታጎሪ ክፍል ማሸጊያ */
         .category-section { margin-bottom: 30px; }
         .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; color: #fff; letter-spacing: -0.3px; }
         
-        /* 🔥 ወደ ጎን የሚሳበው ረድፍ */
         .movie-scroll-wrapper {
             display: flex;
             gap: 14px;
             overflow-x: auto;
             padding-bottom: 10px;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none; 
             -webkit-overflow-scrolling: touch;
         }
-        .movie-scroll-wrapper::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+        .movie-scroll-wrapper::-webkit-scrollbar { display: none; } 
 
         /* 📱 CARD DESIGN */
         .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; flex: 0 0 145px; width: 145px; }
@@ -66,18 +63,27 @@
         .player-modal.active { display: flex; }
         .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
 
-        /* Portrait First Mode (መጀመሪያ ሲከፈት ቀጥ ይላል፤ ስልኩ ሲዞር አብሮ ይዞራል) */
         .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin: auto 0; }
         .iframe-container iframe { position: absolute; top:0; left:0; width: 100%; height: 100%; border: none; }
 
-        /* Floating Close button */
+        /* 🛠️ TOP CONTROLS */
+        .player-controls {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 200000;
+        }
         .close-btn { 
-            position: absolute; top: 20px; right: 20px; z-index: 200000;
             background: rgba(239, 68, 68, 0.9); color: white; border: none;
             padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
+        .server-container { display: flex; gap: 8px; }
+        .server-btn {
+            background: rgba(39, 39, 42, 0.8); color: #fff; border: 1px solid #27272a;
+            padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.2s;
+        }
+        .server-btn.active {
+            background: #f59e0b; color: #000; font-weight: 600; border-color: #f59e0b;
+        }
 
-        /* ሰርች ሲደረግ ብቻ የሚታይ ውጤት ማሳያ ግሪድ */
         .search-results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; display: none; }
 
         @media (min-width: 768px) {
@@ -85,14 +91,12 @@
             .image-wrapper { height: 250px; }
             .modal-content { width: 85%; height: auto; max-width: 950px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
             .iframe-container { padding-top: 56.25%; margin: 0; }
-            .close-btn { position: absolute; top: 15px; right: 15px; border-radius: 8px; }
             .search-results-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
         }
     </style>
 </head>
 <body>
 
-<!-- Navigation -->
 <nav>
     <div class="logo">
         <div class="logo-icon">🎬</div> Cine<span>Scope</span>
@@ -111,59 +115,57 @@
 </header>
 
 <main class="main-container" id="mainContent">
-    <!-- ሰርች ሲደረግ ብቻ የሚሞላ ክፍል -->
     <div id="searchSection" style="display: none; margin-bottom: 30px;">
         <h2 class="section-title" id="searchTitle">Search Results</h2>
         <div class="search-results-grid" id="searchResultsDisplay"></div>
     </div>
 
-    <!-- 1️⃣ Now Playing Section -->
     <div class="category-section">
         <h2 class="section-title">Now Playing in Theaters</h2>
         <div class="movie-scroll-wrapper" id="nowPlayingDisplay"></div>
     </div>
 
-    <!-- 2️⃣ Action Movies Section -->
     <div class="category-section">
         <h2 class="section-title">⚡ Action Thrillers</h2>
         <div class="movie-scroll-wrapper" id="actionDisplay"></div>
     </div>
 
-    <!-- 3️⃣ Animation Movies Section -->
     <div class="category-section">
         <h2 class="section-title">🧸 Family & Animation</h2>
         <div class="movie-scroll-wrapper" id="animationDisplay"></div>
     </div>
 
-    <!-- 4️⃣ Horror Movies Section -->
     <div class="category-section">
         <h2 class="section-title">👻 Horror & Mystery</h2>
         <div class="movie-scroll-wrapper" id="horrorDisplay"></div>
     </div>
 </main>
 
-<!-- Fullscreen Video Player Modal -->
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
-        <button class="close-btn" onclick="closePlayer()">✕ Close</button>
+        <div class="player-controls">
+            <button class="close-btn" onclick="closePlayer()">✕ Close</button>
+            <div class="server-container">
+                <button id="srv1" class="server-btn active" onclick="switchServer(1)">Server 1</button>
+                <button id="srv2" class="server-btn" onclick="switchServer(2)">Server 2</button>
+            </div>
+        </div>
         <div class="iframe-container">
-            <!-- 💬 SUBTITLE ENABLED: vidsrc.to ሰርቨር ሰብታይትል በደንብ ያጫውታል -->
-            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture"></iframe>
+            <!-- onerror በመጠቀም ሰርቨር 1 ካልሰራ በራሱ ወደ ሰርቨር 2 እንዲቀይር ተደርጓል -->
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen" onerror="autoSwitchServer()"></iframe>
         </div>
     </div>
 </div>
 
 <script>
     const API_KEY = "f519e4673f7652685cfc57630b824606";
+    let currentMovieId = null;
+    let currentServer = 1;
 
-    // ማስታወቂያ በራሱ ጊዜ ገጽ እንዳይቀይር መከላከያ ጥበቃ
+    // ማስታወቂያዎች አዲስ ታብ እንዳይከፍቱ በከፊል ይከለክላል
     window.open = function() { return null; };
-    window.onbeforeunload = function() {
-        return "Are you sure you want to leave?";
-    };
 
     window.onload = function() {
-        // ሁሉንም ካታጎሪዎች በአንድ ጊዜ መጫን
         loadCategory(`https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`, "nowPlayingDisplay");
         loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28&language=en-US`, "actionDisplay");
         loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`, "animationDisplay");
@@ -171,31 +173,25 @@
     };
 
     function loadCategory(url, targetId) {
-        fetch(url)
-        .then(res => res.json())
-        .then(data => {
+        fetch(url).then(res => res.json()).then(data => {
             const movies = data.results;
             const display = document.getElementById(targetId);
             display.innerHTML = ""; 
 
             movies.forEach(movie => {
                 if(!movie.poster_path) return; 
-                
                 const poster = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
-                const year = movie.release_date ? movie.release_date.substring(0,4) : "N/A";
-                const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "0.0";
-
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.onclick = () => playMovie(movie.id); 
                 card.innerHTML = `
                     <div class="image-wrapper">
-                        <span class="card-rating">★ ${rating}</span>
+                        <span class="card-rating">★ ${movie.vote_average.toFixed(1)}</span>
                         <img src="${poster}" alt="${movie.title}" loading="lazy">
                     </div>
                     <div class="movie-info">
                         <div class="movie-title">${movie.title}</div>
-                        <div class="movie-meta">${year} • Movie</div>
+                        <div class="movie-meta">${movie.release_date ? movie.release_date.substring(0,4) : "N/A"} • Movie</div>
                     </div>
                 `;
                 display.appendChild(card);
@@ -206,18 +202,11 @@
     function startSearch() {
         const query = document.getElementById('searchQuery').value;
         const searchSection = document.getElementById('searchSection');
-        const searchResultsDisplay = document.getElementById('searchResultsDisplay');
-        const searchTitle = document.getElementById('searchTitle');
-
         if(query.trim() !== "") {
-            searchTitle.innerText = `Results for "${query}"`;
+            document.getElementById('searchTitle').innerText = `Results for "${query}"`;
             searchSection.style.display = "block";
-            searchResultsDisplay.style.display = "grid";
-            
-            const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
-            loadCategory(url, "searchResultsDisplay");
-            
-            // ወደ ላይ ራሱ ስክሮል እንዲያደርግ
+            document.getElementById('searchResultsDisplay').style.display = "grid";
+            loadCategory(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`, "searchResultsDisplay");
             searchSection.scrollIntoView({ behavior: 'smooth' });
         } else {
             searchSection.style.display = "none";
@@ -225,19 +214,59 @@
     }
 
     function playMovie(tmdbId) {
-        const modal = document.getElementById('playerModal');
-        const iframe = document.getElementById('videoIframe');
+        currentMovieId = tmdbId;
+        document.getElementById('playerModal').classList.add('active');
         
-        modal.classList.add('active');
-        // ⚡ የቪዲዮ ሊንኩን ወደ vidsrc.to ቀይረነዋል (Subtitle አብሮት አለው)
-        iframe.src = `https://vidsrc.to/embed/movie/${tmdbId}`; 
+        // 🔄 SCREEN ROTATION SYSTEM (ወደ ጎን እንዲዞር ማድረግ)
+        if (document.documentElement.requestFullscreen) {
+            document.getElementById('playerModal').requestFullscreen().then(() => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(function(error) {
+                        console.log("Orientation lock ignored.");
+                    });
+                }
+            });
+        }
+        
+        switchServer(1); 
+    }
+
+    function switchServer(serverNum) {
+        currentServer = serverNum;
+        const iframe = document.getElementById('videoIframe');
+        const btn1 = document.getElementById('srv1');
+        const btn2 = document.getElementById('srv2');
+
+        if (serverNum === 1) {
+            btn1.classList.add('active');
+            btn2.classList.remove('active');
+            iframe.src = `https://vidsrc.me/embed/movie?tmdb=${currentMovieId}`; 
+        } else {
+            btn2.classList.add('active');
+            btn1.classList.remove('active');
+            iframe.src = `https://embed.su/embed/movie/${currentMovieId}`; 
+        }
+    }
+
+    // 🤖 AUTO SWITCHER (ሰርቨር 1 ካልሰራ በራሱ ወደ ሰርቨር 2 ይቀይራል)
+    function autoSwitchServer() {
+        if (currentServer === 1) {
+            console.log("Server 1 failed. Auto switching to Server 2...");
+            switchServer(2);
+        }
     }
 
     function closePlayer() {
-        const modal = document.getElementById('playerModal');
-        const iframe = document.getElementById('videoIframe');
-        iframe.src = ""; 
-        modal.classList.remove('active');
+        document.getElementById('videoIframe').src = ""; 
+        document.getElementById('playerModal').classList.remove('active');
+        
+        // 🔄 SCREEN ROTATION RESET (ፊልሙ ሲዘጋ ወደ ነበረበት መመለስ)
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+        }
     }
 </script>
 </body>
