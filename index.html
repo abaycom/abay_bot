@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="am">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AbayFlix</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+<header>
+
+<div class="logo">
+🎬 <span>Abay</span>Flix
+</div>
+
+
+<input 
+id="search"
+placeholder="ፊልም ፈልግ..."
+>
+
+
+</header>
+
+
+
+<section class="hero">
+
+<div>
+
+<h1 id="heroTitle">
+AbayFlix
+</h1>
+
+<p>
+ምርጥ ፊልሞች እና ተከታታይ ፊልሞች
+</p>
+
+
+<button>
+▶ አሁን ይመልከቱ
+</button>
+
+
+</div>
+
+</section>
+
+
+
+
+<section>
+
+<h2>🔥 Trending</h2>
+
+<div id="trending" class="movie-row"></div>
+
+</section>
+
+
+
+
+<section>
+
+<h2>🎬 Movies</h2>
+
+<div id="movies" class="movie-row"></div>
+
+</section>
+
+
+
+
+<section>
+
+<h2>📺 TV Series</h2>
+
+<div id="series" class="movie-row"></div>
+
+</section>
+
+
+
+
+<!-- DETAILS -->
+
+<div id="detailsModal" class="modal">
+
+
+<div class="details-box">
+
+
+<button class="close"
+onclick="closeDetails()">
+✕
+</button>
+
+
+<img id="detailPoster">
+
+
+<h1 id="detailTitle"></h1>
+
+
+<p id="detailText"></p>
+
+
+
+<button class="play"
+onclick="playMovie()">
+
+▶ Play
+
+</button>
+
+
+<button class="trailer"
+onclick="openTrailer()">
+
+🎞 Trailer
+
+</button>
+
+
+
+</div>
+
+</div>
+
+
+
+
+
+<!-- SERIES -->
+
+<div id="seriesModal" class="modal">
+
+
+<div class="details-box">
+
+
+<button class="close"
+onclick="closeSeries()">
+✕
+</button>
+
+
+<h2 id="seriesName"></h2>
+
+
+
+<select id="seasonSelect"
+onchange="loadEpisodes()">
+
+</select>
+
+
+<br><br>
+
+
+<select id="episodeSelect">
+
+</select>
+
+
+<br><br>
+
+
+<button class="play"
+onclick="playEpisode()">
+
+▶ Play Episode
+
+</button>
+
+
+
+</div>
+
+</div>
+
+
+
+
+
+
+<!-- PLAYER -->
+
+
+<div id="playerModal" class="modal">
+
+
+<div class="player-box">
+
+
+<button class="close"
+onclick="closePlayer()">
+
+✕
+
+</button>
+
+
+<iframe
+id="player"
+allowfullscreen>
+</iframe>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<script src="js/api.js"></script>
+
+<script src="js/telegram.js"></script>
+
+<script src="js/app.js"></script>
+
+
+</body>
+
+</html>
