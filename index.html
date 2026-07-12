@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CineScope - Stream Movies & TV Shows</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CineScope - Premium MX Player Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
@@ -11,14 +11,10 @@
         body { background-color: #0d0c11; color: #f4f4f5; padding-bottom: 30px; overflow-x: hidden; }
 
         /* 👑 PRO NAVIGATION BAR */
-        nav {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px; max-width: 1200px; margin: 0 auto;
-        }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px; max-width: 1200px; margin: 0 auto; }
         .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.4rem; color: #fff; letter-spacing: -0.5px; }
         .logo span { color: #f59e0b; } 
         .logo-icon { width: 26px; height: 26px; background: #f59e0b; border-radius: 6px; display: grid; place-items: center; color: #000; font-weight: bold; font-size: 14px; }
-        
         .menu-icon { display: flex; flex-direction: column; gap: 5px; cursor: pointer; }
         .menu-icon div { width: 22px; height: 2.5px; background-color: white; border-radius: 2px; }
 
@@ -31,11 +27,10 @@
         }
         .search-box:focus { border-color: #f59e0b; }
 
-        /* 🏷️ GENRE TAGS (ልክ እንደ ፎቶው ከጎን ወደ ጎን የሚሳብ) */
+        /* 🏷️ GENRE TAGS */
         .genres-container { 
             display: flex; gap: 10px; max-width: 1200px; margin: 0 auto 30px auto; 
-            padding: 0 20px; overflow-x: auto; scroll-bar-width: none;
-            -webkit-overflow-scrolling: touch;
+            padding: 0 20px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
         }
         .genres-container::-webkit-scrollbar { display: none; }
         .genre-btn { 
@@ -48,56 +43,64 @@
         /* 🎬 MOVIE GRID SECTION */
         .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
         .section-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 20px; color: #fff; letter-spacing: -0.5px; }
-        
-        /* 📱 MOBILE OPTIMIZED GRID: በስልክ 2 ፊልም ብቻ ጎን ለጎን በትልቁ የሚያሳይ */
-        .movie-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 16px; 
-        }
+        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 
-        /* 📱 MOBILE CARD DESIGN (ልክ እንደ ፎቶው) */
+        /* 📱 MOBILE CARD DESIGN */
         .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; }
         .image-wrapper { width: 100%; height: 240px; border-radius: 14px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.03); }
         .movie-card img { width: 100%; height: 100%; object-fit: cover; }
-        
         .card-rating { 
             position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.5); 
             backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 3px 8px; border-radius: 10px; 
             font-size: 11px; font-weight: 600; color: #f59e0b; display: flex; align-items: center; gap: 3px;
         }
-
         .movie-info { padding: 10px 2px 0 2px; }
         .movie-title { font-size: 14px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
         .movie-meta { font-size: 12px; color: #71717a; }
 
-        /* 📺 FULL SCREEN VIDEO PLAYER MODAL */
+        /* 📱 ⚡ MX PLAYER AUTOMATIC ROTATION SYSTEM (FOR PHONES) */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            background: #000000; z-index: 2000; justify-content: center; align-items: center;
+            background: #000000; z-index: 99999; justify-content: center; align-items: center;
         }
         .player-modal.active { display: flex; }
-        .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
-        
-        /* ማጫወቻው በስልክ ሙሉ ስክሪን እንዲሆን */
-        .iframe-container { position: relative; width: 100%; flex-grow: 1; background: #000; display: flex; align-items: center; }
-        .iframe-container iframe { width: 100%; height: 100%; border: none; }
+        .modal-content { width: 100%; height: 100%; background: #000; position: relative; overflow: hidden; }
 
-        /* የclose በተን ማስተካከያ (ቪዲዮው ላይ እንዳይጋርድ ከላይ ተንሳፋፊ የተደረገ) */
-        .close-btn { 
-            position: absolute; top: 20px; right: 20px; z-index: 2001;
-            background: rgba(239, 68, 68, 0.85); backdrop-filter: blur(5px);
-            color: white; border: none; padding: 8px 16px; border-radius: 20px; 
-            cursor: pointer; font-size: 13px; font-weight: 600; 
+        /* 🔄 Forced Landscape Mode for Mobile Browsers */
+        @media (max-width: 767px) {
+            .iframe-container {
+                position: absolute;
+                top: 50%; left: 50%;
+                width: 100vh; height: 100vw; /* Dimensions inverted */
+                transform: translate(-50%, -50%) rotate(90deg); /* Forced rotation like MX Player */
+                transform-origin: center center;
+                background: #000;
+            }
+            /* Floating MX-style close button over the rotated view */
+            .close-btn { 
+                position: absolute; top: 15px; left: 15px; z-index: 200000;
+                background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
+                color: #f59e0b; border: 1px solid rgba(255,255,255,0.2); 
+                width: 40px; height: 40px; border-radius: 50%; 
+                font-size: 18px; font-weight: bold; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transform: rotate(90deg); /* Matches the view angle */
+            }
         }
 
-        /* ኮምፒውተር ላይ ሲከፈት መልሶ Grid እንዲያስተካክል */
+        .iframe-container iframe { width: 100%; height: 100%; border: none; }
+
+        /* Laptop or Desktop Normal Grid Mode Override */
         @media (min-width: 768px) {
             .movie-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; }
             .image-wrapper { height: 270px; }
-            .modal-content { width: 90%; height: auto; max-width: 900px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
-            .iframe-container { padding-top: 56.25%; flex-grow: unset; }
-            .close-btn { position: static; margin: 15px; align-self: flex-end; border-radius: 8px; }
+            .modal-content { width: 85%; height: auto; max-width: 950px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
+            .iframe-container { position: relative; width: 100%; padding-top: 56.25%; }
+            .close-btn { 
+                position: absolute; top: 15px; right: 15px; z-index: 100;
+                background: rgba(239, 68, 68, 0.9); color: white; border: none;
+                padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+            }
         }
     </style>
 </head>
@@ -121,7 +124,7 @@
     </div>
 </header>
 
-<!-- Genre Filters (ልክ እንደ ፎቶው) -->
+<!-- Genre Filters -->
 <div class="genres-container">
     <button class="genre-btn active" onclick="filterGenre('all')">All</button>
     <button class="genre-btn" onclick="filterGenre('28')">Action</button>
@@ -137,13 +140,13 @@
     <div class="movie-grid" id="movieDisplay"></div>
 </main>
 
-<!-- Fullscreen Video Player Modal -->
+<!-- Fullscreen MX-Style Video Player Modal -->
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
-        <button class="close-btn" onclick="closePlayer()">✕ Close</button>
+        <button class="close-btn" onclick="closePlayer()">✕</button>
         <div class="iframe-container">
-            <!-- 🔄 SCREEN ROTATION & FULLSCREEN FULLY ENABLED -->
-            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture; screen-wake-lock"></iframe>
+            <!-- 🛠️ FULL CAPABILITIES RE-ENABLED -->
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture"></iframe>
         </div>
     </div>
 </div>
@@ -220,9 +223,10 @@
         const iframe = document.getElementById('videoIframe');
         
         modal.classList.add('active');
+        // Auto loads the bulletproof Server 2 source
         iframe.src = `https://vidsrc.pm/embed/movie/${tmdbId}`; 
         
-        // 🔄 Auto-request orientation lock or browser full-screen if supported
+        // Native full-screen browser trigger
         if (modal.requestFullscreen) {
             modal.requestFullscreen();
         } else if (modal.webkitRequestFullscreen) {
