@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CineScope - Premium Categories Edition</title>
+    <title>CineScope - MX Player Rotation Pro</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
@@ -29,8 +29,6 @@
 
         /* 🎬 MAIN CONTAINER & CATEGORIES SETUP */
         .main-container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
-        
-        /* እያንዳንዱ የካታጎሪ ክፍል ማሸጊያ */
         .category-section { margin-bottom: 30px; }
         .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 12px; color: #fff; letter-spacing: -0.3px; }
         
@@ -40,10 +38,10 @@
             gap: 14px;
             overflow-x: auto;
             padding-bottom: 10px;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none; 
             -webkit-overflow-scrolling: touch;
         }
-        .movie-scroll-wrapper::-webkit-scrollbar { display: none; } /* Chrome, Safari */
+        .movie-scroll-wrapper::-webkit-scrollbar { display: none; }
 
         /* 📱 CARD DESIGN */
         .movie-card { background: transparent; cursor: pointer; display: flex; flex-direction: column; flex: 0 0 145px; width: 145px; }
@@ -58,35 +56,48 @@
         .movie-title { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
         .movie-meta { font-size: 11px; color: #71717a; }
 
-        /* 📺 CINEMATIC VIDEO PLAYER MODAL */
+        /* 📺 MX PLAYER STYLE VIDEO MODAL */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: #000000; z-index: 99999; justify-content: center; align-items: center;
         }
         .player-modal.active { display: flex; }
-        .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; }
+        .modal-content { width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; position: relative; transition: all 0.3s ease; }
 
-        /* Portrait First Mode (መጀመሪያ ሲከፈት ቀጥ ይላል፤ ስልኩ ሲዞር አብሮ ይዞራል) */
+        /* 🔄 MX PLAYER FORCE ROTATION STYLES (በአንድ በተን የሚዞረው) */
+        .modal-content.rotated {
+            transform: rotate(90deg);
+            width: 100vh;
+            height: 100vw;
+        }
+
         .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; margin: auto 0; }
         .iframe-container iframe { position: absolute; top:0; left:0; width: 100%; height: 100%; border: none; }
 
-        /* Floating Close button */
+        /* 🛠️ MX PLAYER CONTROL BUTTONS */
+        .player-controls {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 200000;
+        }
         .close-btn { 
-            position: absolute; top: 20px; right: 20px; z-index: 200000;
             background: rgba(239, 68, 68, 0.9); color: white; border: none;
             padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
         }
+        .rotate-btn {
+            background: rgba(245, 158, 11, 0.9); color: #000; border: none;
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 5px;
+        }
 
-        /* ሰርች ሲደረግ ብቻ የሚታይ ውጤት ማሳያ ግሪድ */
         .search-results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; display: none; }
 
         @media (min-width: 768px) {
             .movie-card { flex: 0 0 170px; width: 170px; }
             .image-wrapper { height: 250px; }
             .modal-content { width: 85%; height: auto; max-width: 950px; border-radius: 16px; border: 1px solid #27272a; overflow: hidden; }
+            .modal-content.rotated { transform: none; width: 85%; height: auto; } /* Disable rotation on PC */
             .iframe-container { padding-top: 56.25%; margin: 0; }
-            .close-btn { position: absolute; top: 15px; right: 15px; border-radius: 8px; }
-            .search-results-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+            .rotate-btn { display: none; } /* Hide rotation button on laptop */
         }
     </style>
 </head>
@@ -111,31 +122,26 @@
 </header>
 
 <main class="main-container" id="mainContent">
-    <!-- ሰርች ሲደረግ ብቻ የሚሞላ ክፍል -->
     <div id="searchSection" style="display: none; margin-bottom: 30px;">
         <h2 class="section-title" id="searchTitle">Search Results</h2>
         <div class="search-results-grid" id="searchResultsDisplay"></div>
     </div>
 
-    <!-- 1️⃣ Now Playing Section -->
     <div class="category-section">
         <h2 class="section-title">Now Playing in Theaters</h2>
         <div class="movie-scroll-wrapper" id="nowPlayingDisplay"></div>
     </div>
 
-    <!-- 2️⃣ Action Movies Section -->
     <div class="category-section">
         <h2 class="section-title">⚡ Action Thrillers</h2>
         <div class="movie-scroll-wrapper" id="actionDisplay"></div>
     </div>
 
-    <!-- 3️⃣ Animation Movies Section -->
     <div class="category-section">
         <h2 class="section-title">🧸 Family & Animation</h2>
         <div class="movie-scroll-wrapper" id="animationDisplay"></div>
     </div>
 
-    <!-- 4️⃣ Horror Movies Section -->
     <div class="category-section">
         <h2 class="section-title">👻 Horror & Mystery</h2>
         <div class="movie-scroll-wrapper" id="horrorDisplay"></div>
@@ -144,11 +150,15 @@
 
 <!-- Fullscreen Video Player Modal -->
 <div class="player-modal" id="playerModal">
-    <div class="modal-content">
-        <button class="close-btn" onclick="closePlayer()">✕ Close</button>
+    <!-- MX PLAYER CONTAINER WITH ROTATION STATE -->
+    <div class="modal-content" id="modalContent">
+        <div class="player-controls">
+            <button class="close-btn" onclick="closePlayer()">✕ Close</button>
+            <button class="rotate-btn" onclick="toggleRotation()">🔄 Rotate Screen</button>
+        </div>
         <div class="iframe-container">
-            <!-- ✅ FIX: Sandbox attribute removed to prevent "Playback blocked" bug and allow all players to work perfectly -->
-            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; picture-in-picture"></iframe>
+            <!-- ⚡ PRO SERVER WITH SUBTITLES ENABLED -->
+            <iframe id="videoIframe" src="" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen"></iframe>
         </div>
     </div>
 </div>
@@ -156,14 +166,10 @@
 <script>
     const API_KEY = "f519e4673f7652685cfc57630b824606";
 
-    // ማስታወቂያ በራሱ ጊዜ ገጽ እንዳይቀይር መከላከያ ጥበቃ
     window.open = function() { return null; };
-    window.onbeforeunload = function() {
-        return "Are you sure you want to leave?";
-    };
+    window.onbeforeunload = function() { return "Are you sure you want to leave?"; };
 
     window.onload = function() {
-        // ሁሉንም ካታጎሪዎች በአንድ ጊዜ መጫን
         loadCategory(`https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=en-US&page=1`, "nowPlayingDisplay");
         loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28&language=en-US`, "actionDisplay");
         loadCategory(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16&language=en-US`, "animationDisplay");
@@ -213,11 +219,8 @@
             searchTitle.innerText = `Results for "${query}"`;
             searchSection.style.display = "block";
             searchResultsDisplay.style.display = "grid";
-            
             const url = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=en-US`;
             loadCategory(url, "searchResultsDisplay");
-            
-            // ወደ ላይ ራሱ ስክሮል እንዲያደርግ
             searchSection.scrollIntoView({ behavior: 'smooth' });
         } else {
             searchSection.style.display = "none";
@@ -229,13 +232,23 @@
         const iframe = document.getElementById('videoIframe');
         
         modal.classList.add('active');
-        iframe.src = `https://vidsrc.pm/embed/movie/${tmdbId}`; 
+        // Subtitle በደንብ የሚሰራበትን የቪዲዮ ሊንክ ተክተናል
+        iframe.src = `https://vidsrc.to/embed/movie/${tmdbId}`; 
+    }
+
+    // 🔄 MX PLAYER ROTATION FUNCTION
+    function toggleRotation() {
+        const modalContent = document.getElementById('modalContent');
+        modalContent.classList.toggle('rotated');
     }
 
     function closePlayer() {
         const modal = document.getElementById('playerModal');
+        const modalContent = document.getElementById('modalContent');
         const iframe = document.getElementById('videoIframe');
+        
         iframe.src = ""; 
+        modalContent.classList.remove('rotated'); // Reset rotation on close
         modal.classList.remove('active');
     }
 </script>
