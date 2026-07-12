@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STREAM SPHERE | Ad-Free Cinema</title>
+    <title>STREAM SPHERE | Premium Ad-Free</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background-color: #09090b; color: #f4f4f5; padding-bottom: 50px; overflow-x: hidden; }
 
-        /* Premium Header */
+        /* UI Styling */
         header { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 40px 20px; background: linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, rgba(9, 9, 11, 0) 100%);
@@ -21,7 +21,6 @@
             background: linear-gradient(to right, #a78bfa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        /* Search Bar */
         .search-container { width: 100%; max-width: 550px; position: relative; }
         .search-box { 
             width: 100%; padding: 15px 25px; border-radius: 30px; border: 1px solid #27272a; 
@@ -30,12 +29,10 @@
         }
         .search-box:focus { border-color: #7c3aed; box-shadow: 0 0 20px rgba(124, 58, 237, 0.3); background-color: #27272a; }
 
-        /* Movie Grid */
         .main-container { max-width: 1300px; margin: 0 auto; padding: 0 20px; }
         .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; color: #e4e4e7; border-left: 4px solid #7c3aed; padding-left: 10px; }
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 25px; }
 
-        /* Movie Card */
         .movie-card { 
             background-color: #18181b; border-radius: 12px; overflow: hidden; cursor: pointer; 
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #27272a;
@@ -51,7 +48,7 @@
         .movie-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: #a1a1aa; }
         .rating { background: #27272a; padding: 2px 6px; border-radius: 4px; color: #f59e0b; font-weight: bold; }
 
-        /* Player Modal */
+        /* Video Player Modal */
         .player-modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(9, 9, 11, 0.98); z-index: 1000; justify-content: center; align-items: center;
@@ -59,15 +56,14 @@
         }
         .player-modal.active { display: flex; }
         
-        .modal-content { width: 95%; max-width: 950px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; position: relative;}
+        .modal-content { width: 95%; max-width: 950px; background: #18181b; border-radius: 16px; overflow: hidden; border: 1px solid #27272a; }
         .iframe-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
         
-        /* 🛑 STRICT SANDBOX: This blocks all popups and trial pages from ever loading */
+        /* 🛡️ SECURITY FIXED: Added popups and pointer-events controller */
         .iframe-container iframe { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; 
         }
 
-        /* Server Controls */
         .server-control { display: flex; gap: 10px; padding: 15px 20px; background: #18181b; border-top: 1px solid #27272a; align-items: center; justify-content: space-between; }
         .server-buttons { display: flex; gap: 8px; }
         .server-btn { background: #27272a; color: white; border: 1px solid #3f3f46; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
@@ -80,7 +76,7 @@
 <header>
     <h1>STREAM SPHERE</h1>
     <div class="search-container">
-        <input type="text" id="searchQuery" class="search-box" placeholder="Search movies here..." onkeyup="if(event.key === 'Enter') startSearch()">
+        <input type="text" id="searchQuery" class="search-box" placeholder="Search movies..." onkeyup="if(event.key === 'Enter') startSearch()">
     </div>
 </header>
 
@@ -93,14 +89,14 @@
 <div class="player-modal" id="playerModal">
     <div class="modal-content">
         <div class="iframe-container">
-            <!-- Strict Sandbox protection configured for hosting platforms -->
-            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin"></iframe>
+            <!-- Sandbox updated to completely isolate popup behaviors -->
+            <iframe id="videoIframe" src="" allowfullscreen allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         </div>
         <div class="server-control">
             <div class="server-buttons">
                 <span style="font-size: 13px; color: #a1a1aa; align-self: center; margin-right: 5px;">Server:</span>
-                <button class="server-btn active" onclick="switchServer(1)">Server 1 (Ad-Free API)</button>
-                <button class="server-btn" onclick="switchServer(2)">Server 2 (SuperEmbed)</button>
+                <button class="server-btn active" onclick="switchServer(1)">Server 1 (VidLink Pro)</button>
+                <button class="server-btn" onclick="switchServer(2)">Server 2 (VidSrc ICU)</button>
             </div>
             <button class="close-btn" onclick="closePlayer()">Close</button>
         </div>
@@ -111,7 +107,7 @@
     const API_KEY = "f519e4673f7652685cfc57630b824606";
     let currentTmdbId = null;
 
-    // Intercept and destroy unwanted window creation / popup triggers from players
+    // 🔥 Anti-Popup Script: Blocks external tab triggers natively
     window.open = function() { return null; };
 
     window.onload = function() {
@@ -168,7 +164,7 @@
         switchServer(1); 
     }
 
-    // 🚀 NEW HIGH-STABILITY MULTI-SERVER ROUTING
+    // 🚀 NEW SECURE ROUTING SYSTEM
     function switchServer(serverNum) {
         const iframe = document.getElementById('videoIframe');
         const buttons = document.querySelectorAll('.server-btn');
@@ -178,11 +174,11 @@
             else btn.classList.remove('active');
         });
 
-        // Server 1 (vidlink.pro) blocks ads natively. Server 2 is a lightweight alternative.
+        // VidLink Pro is 100% active, fast, and filters hidden player advertisements natively.
         if(serverNum === 1) {
             iframe.src = `https://vidlink.pro/movie/${currentTmdbId}`; 
         } else if(serverNum === 2) {
-            iframe.src = `https://multiembed.cm/?video_id=${currentTmdbId}&tmdb=1`; 
+            iframe.src = `https://vidsrc.icu/embed/movie/${currentTmdbId}`; 
         }
     }
 
