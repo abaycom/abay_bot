@@ -18,9 +18,9 @@ from database import (
 
 
 
-BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+BOT_TOKEN = "5980643111:AAH3BFhQlyltdmJa_K8rjynyvnZ43uFEkUk"
 
-WEB_APP_URL = "https://your-domain.com"
+WEB_APP_URL = "http://abaybot-production.up.railway.app"
 
 
 
