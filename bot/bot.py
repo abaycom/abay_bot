@@ -18,7 +18,7 @@ from database import (
 
 
 
-BOT_TOKEN = "5980643111:AAH3BFhQlyltdmJa_K8rjynyvnZ43uFEkUk"
+BOT_TOKEN = "5980643111:AAElPXmXNdq7o0Vs-lcKZ9fFFG_BvxZzSj0"
 
 WEB_APP_URL = "http://abaybot-production.up.railway.app"
 
