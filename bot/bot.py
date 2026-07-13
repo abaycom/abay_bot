@@ -20,7 +20,7 @@ from database import (
 
 BOT_TOKEN = "5980643111:AAElPXmXNdq7o0Vs-lcKZ9fFFG_BvxZzSj0"
 
-WEB_APP_URL = "http://abaybot-production.up.railway.app"
+WEB_APP_URL = "https://abaybot-production.up.railway.app"
 
 
 
