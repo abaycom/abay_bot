@@ -2,15 +2,19 @@ import asyncio
 import logging
 import json
 import random
+import os
 from datetime import datetime, timedelta
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, MenuButtonWebApp
 from aiogram.enums import ParseMode
 
 # ==================== CONFIGURATION ====================
-BOT_TOKEN = "8616146622:AAFnfw1ltj-TWT3_UvceYwmWpuKbqcX_fSM"
-WEBAPP_URL = "https://abaybot-production.up.railway.app"
+# ቦት ቶከንዎን እና የዌብ አፕ ሊንክዎን እዚህ ይተኩ ወይም በ Railway Environment Variables ውስጥ ያስገቡ
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8616146622:AAFnfw1ltj-TWT3_UvceYwmWpuKbqcX_fSM")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://abaybot-production.up.railway.app")
+PORT = int(os.getenv("PORT", 8080))
 ADMIN_IDS = [5049565154]
 
 # ==================== LOGGING ====================
@@ -26,13 +30,13 @@ stats = {
     "total_ad_views": 0,
     "referrals": {},
     "ad_config": {
-        "video_ad_enabled": False,      # OFF by default
-        "banner_ad_enabled": False,     # OFF by default
-        "bot_ad_enabled": False,        # OFF by default
+        "video_ad_enabled": False,
+        "banner_ad_enabled": False,
+        "bot_ad_enabled": False,
         "video_ad_duration": 5,
-        "video_ad_text": "🔥 Watch New Movies for Free! 🔥",
-        "banner_ad_text": "🎬 New Releases Every Day!",
-        "bot_ad_text": "🎬 Check out the latest movies on Cinema Hub! Watch for free now!",
+        "video_ad_text": "Watch New Movies for Free!",
+        "banner_ad_text": "New Releases Every Day!",
+        "bot_ad_text": "Check out the latest movies on Cinema Hub! Watch for free now!",
         "video_ad_views": 0,
         "video_ad_skips": 0,
         "banner_ad_views": 0,
@@ -52,6 +56,23 @@ BOT_ADS = [
 # ==================== INITIALIZE BOT ====================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+# ==================== WEB SERVER (SERVES INDEX.HTML) ====================
+async def handle_index(request):
+    if os.path.exists("index.html"):
+        return web.FileResponse("index.html")
+    return web.Response(text="index.html not found", status=404)
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_index)
+    app.router.add_get("/index.html", handle_index)
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    logger.info(f"Web server running on http://0.0.0.0:{PORT}")
 
 # ==================== COMMANDS ====================
 
@@ -129,7 +150,6 @@ Watch movies, TV series, and your favorites for free!
 
     await message.answer(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
 
-    # Send bot ad ONLY if enabled
     if stats["ad_config"]["bot_ad_enabled"]:
         await asyncio.sleep(2)
         ad = random.choice(BOT_ADS)
@@ -253,7 +273,6 @@ async def cmd_stats(message: types.Message):
 
 @dp.message(Command("users"))
 async def cmd_users(message: types.Message):
-    """Admin: List registered users"""
     if message.from_user.id not in ADMIN_IDS:
         return
 
@@ -262,7 +281,7 @@ async def cmd_users(message: types.Message):
         return
 
     user_list = []
-    for uid, user in list(users_db.items())[:20]:  # Show first 20
+    for uid, user in list(users_db.items())[:20]:
         status = "🟢" if datetime.fromisoformat(user["last_active"]) > datetime.now() - timedelta(minutes=5) else "⚪"
         user_list.append(f"{status} {user.get('first_name', 'Unknown')} (@{user.get('username', 'N/A')}) - Plays: {user.get('plays', 0)}")
 
@@ -300,7 +319,6 @@ async def cmd_broadcast(message: types.Message):
 
 @dp.message(Command("ad_config"))
 async def cmd_ad_config(message: types.Message):
-    """Admin: Configure all ad types"""
     if message.from_user.id not in ADMIN_IDS:
         return
 
@@ -350,20 +368,19 @@ Current Status:"""
 
     elif setting == "video_text":
         cfg["video_ad_text"] = " ".join(args[2:])
-        await message.answer(f"✅ Video ad text updated!")
+        await message.answer("✅ Video ad text updated!")
 
     elif setting == "banner_text":
         cfg["banner_ad_text"] = " ".join(args[2:])
-        await message.answer(f"✅ Banner ad text updated!")
+        await message.answer("✅ Banner ad text updated!")
 
     elif setting == "bot_text":
         cfg["bot_ad_text"] = " ".join(args[2:])
-        await message.answer(f"✅ Bot ad text updated!")
+        await message.answer("✅ Bot ad text updated!")
 
 
 @dp.message(Command("send_ad"))
 async def cmd_send_ad(message: types.Message):
-    """Admin: Send ad to all users"""
     if message.from_user.id not in ADMIN_IDS:
         return
 
@@ -470,7 +487,13 @@ async def set_menu_button():
 # ==================== MAIN ====================
 
 async def main():
+    # 1. Start the HTTP Web Server for index.html
+    await start_web_server()
+    
+    # 2. Set Bot Menu Button
     await set_menu_button()
+    
+    # 3. Start Bot Polling
     logger.info("Bot started!")
     await dp.start_polling(bot)
 
