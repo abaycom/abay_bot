@@ -10,7 +10,7 @@ from aiogram.enums import ParseMode
 
 # ==================== CONFIGURATION ====================
 BOT_TOKEN = "8616146622:AAFnfw1ltj-TWT3_UvceYwmWpuKbqcX_fSM"
-WEBAPP_URL = "http://abaybot-production.up.railway.app"
+WEBAPP_URL = "https://abaybot-production.up.railway.app"
 ADMIN_IDS = [5049565154]
 
 # ==================== LOGGING ====================
