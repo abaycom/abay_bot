@@ -371,7 +371,6 @@
         <div class="player-header">
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
-            <!-- MultiEmbed እና VidSrc ሰርቨሮች ምርጫ -->
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
                 <option value="multiembed" selected>⚡ Server 4 (MultiEmbed)</option>
                 <option value="vidsrc_su">⚡ VidSrc.su</option>
@@ -386,7 +385,8 @@
         </div>
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper" id="videoWrapper">
-                <iframe id="videoFrame" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
+                <!-- Sandboxing እገዳው ሙሉ በሙሉ ተወግዷል -->
+                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
             </div>
         </div>
     </div>
