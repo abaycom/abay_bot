@@ -231,10 +231,12 @@
             padding: 10px 16px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px;
         }
         .player-controls-top { display: flex; gap: 10px; align-items: center; }
+        
         .server-selector {
             background: var(--bg-card); border: 1px solid var(--border); color: white;
-            padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; outline: none; font-family: 'Inter', sans-serif;
+            padding: 6px 12px; border-radius: 8px; font-size: 12px; outline: none; font-family: 'Inter', sans-serif; cursor: pointer;
         }
+
         .player-btn {
             background: rgba(255,255,255,0.15); border: none; color: white;
             width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
@@ -367,14 +369,13 @@
 
     <div class="player-modal" id="playerModal">
         <div class="player-header">
-            <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
+            <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
-            <!-- Server Selector Dropdown to fix black screen errors -->
+            <!-- MultiEmbed እና VidSrc ሰርቨሮች ምርጫ -->
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
-                <option value="vidsrc_cc">Server 1 (VidSrc.cc)</option>
-                <option value="vidsrc_su">Server 2 (VidSrc.su)</option>
-                <option value="vidembed">Server 3 (VidEmbed)</option>
-                <option value="multiembed">Server 4 (MultiEmbed)</option>
+                <option value="multiembed" selected>⚡ Server 4 (MultiEmbed)</option>
+                <option value="vidsrc_su">⚡ VidSrc.su</option>
+                <option value="vidsrc_cc">⚡ VidSrc.cc</option>
             </select>
 
             <div class="player-controls-top">
@@ -385,7 +386,7 @@
         </div>
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper" id="videoWrapper">
-                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
+                <iframe id="videoFrame" sandbox="allow-scripts allow-same-origin allow-presentation allow-forms" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
             </div>
         </div>
     </div>
@@ -420,7 +421,7 @@
             IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w500'
         };
 
-        let currentMedia = { id: null, type: 'movie', season: 1, episode: 1 };
+        let currentMedia = { id: null, type: 'movie', season: 1, episode: 1, title: '' };
 
         let state = {
             currentCategory: 'all',
@@ -772,15 +773,21 @@
             let url = '';
 
             if (currentMedia.type === 'movie') {
-                if (serverKey === 'vidsrc_cc') url = `https://vidsrc.cc/v2/embed/movie/${currentMedia.id}`;
-                else if (serverKey === 'vidsrc_su') url = `https://vidsrc-embed.su/embed/movie/${currentMedia.id}`;
-                else if (serverKey === 'vidembed') url = `https://vidembed.cc/embed.php?tmdb=1&id=${currentMedia.id}`;
-                else if (serverKey === 'multiembed') url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1`;
+                if (serverKey === 'multiembed') {
+                    url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1`;
+                } else if (serverKey === 'vidsrc_su') {
+                    url = `https://vidsrc-embed.su/embed/movie/${currentMedia.id}`;
+                } else if (serverKey === 'vidsrc_cc') {
+                    url = `https://vidsrc.cc/v2/embed/movie/${currentMedia.id}`;
+                }
             } else {
-                if (serverKey === 'vidsrc_cc') url = `https://vidsrc.cc/v2/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
-                else if (serverKey === 'vidsrc_su') url = `https://vidsrc-embed.su/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
-                else if (serverKey === 'vidembed') url = `https://vidembed.cc/embed.php?tmdb=1&id=${currentMedia.id}&season=${currentMedia.season}&episode=${currentMedia.episode}`;
-                else if (serverKey === 'multiembed') url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1&season=${currentMedia.season}&episode=${currentMedia.episode}`;
+                if (serverKey === 'multiembed') {
+                    url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1&s=${currentMedia.season}&e=${currentMedia.episode}`;
+                } else if (serverKey === 'vidsrc_su') {
+                    url = `https://vidsrc-embed.su/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
+                } else if (serverKey === 'vidsrc_cc') {
+                    url = `https://vidsrc.cc/v2/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
+                }
             }
 
             const modal = document.getElementById('playerModal');
@@ -885,7 +892,7 @@
         function shareInvite() {
             const link = document.getElementById('inviteLink').value;
             const text = '🎬 Nilo Cinema - Watch Movies & Series for Free!';
-            if (tg.openTelegramLink) {
+            if (tg.openParameter || tg.openTelegramLink) {
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
             }
         }
