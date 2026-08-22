@@ -254,6 +254,26 @@
             cursor: pointer;
         }
 
+        /* ወደ ውጭ ብራውዘር እንዳይሄድ ማገጃ Popup Box */
+        .redirect-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); z-index: 2000; display: none;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .redirect-modal.active { display: flex; }
+        .redirect-box {
+            background: var(--bg-secondary); border-radius: 16px; padding: 24px;
+            width: 100%; max-width: 340px; text-align: center; border: 1px solid var(--border);
+        }
+        .redirect-box i { font-size: 40px; color: var(--accent); margin-bottom: 12px; }
+        .redirect-box h3 { font-size: 18px; margin-bottom: 8px; font-weight: 700; }
+        .redirect-box p { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; line-height: 1.4; }
+        .redirect-actions { display: flex; gap: 10px; justify-content: center; }
+        .cancel-redirect-btn {
+            flex: 1; background: var(--accent); color: white; border: none;
+            padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(18, 18, 26, 0.98); backdrop-filter: blur(20px);
@@ -379,7 +399,6 @@
         <div class="player-header">
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
-            <!-- የተስተካከለው ሰርቨር መምረጫ -->
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
                 <option value="vidlink" selected>⚡ VidLink (Fast)</option>
                 <option value="vidsrc_to">⚡ VidSrc.to (Old Classic)</option>
@@ -398,6 +417,18 @@
             <div class="video-wrapper" id="videoWrapper">
                 <div class="click-shield" id="clickShield" onclick="removeShield()"></div>
                 <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- ወደ ውጭ ብራውዘር እንዳይሄድ የሚከለክል Pop-up Box -->
+    <div class="redirect-modal" id="redirectModal">
+        <div class="redirect-box">
+            <i class="fas fa-shield-alt"></i>
+            <h3>Navigation Blocked</h3>
+            <p>An external link was prevented from opening outside Telegram Cinema.</p>
+            <div class="redirect-actions">
+                <button class="cancel-redirect-btn" onclick="cancelRedirect()">Cancel & Stay Here</button>
             </div>
         </div>
     </div>
@@ -453,10 +484,29 @@
         tg.setHeaderColor('#0a0a0f');
         tg.setBackgroundColor('#0a0a0f');
 
-        // Pop-up Ads/New Windows እንዳይከፈቱ ሙሉ በሙሉ ማገድ
+        // ውጫዊ ብራውዘር እንዳይከፈት የማገጃ አሰራር (Override Popup / Window Open)
         window.open = function() {
+            showRedirectModal();
             return null;
         };
+
+        // Iframe ገጹን ሙሉ በሙሉ ቀይሮ ወደ ሌላ ቦታ እንዳይሄድ መከላከያ (Navigation Lock)
+        window.onbeforeunload = function() {
+            const playerModal = document.getElementById('playerModal');
+            if (playerModal && playerModal.classList.contains('active')) {
+                showRedirectModal();
+                return "Are you sure you want to leave?";
+            }
+        };
+
+        function showRedirectModal() {
+            document.getElementById('redirectModal').classList.add('active');
+        }
+
+        function cancelRedirect() {
+            document.getElementById('redirectModal').classList.remove('active');
+            showToast('Returned to video player');
+        }
 
         function removeShield() {
             const shield = document.getElementById('clickShield');
@@ -791,7 +841,6 @@
             loadPlayerUrl();
         }
 
-        // ሁሉንም አዳዲስ እና የድሮ ሰርቨሮች በደንብ እንዲሰሩ የመገንቢያ ሊንኮች፦
         function loadPlayerUrl() {
             const serverKey = document.getElementById('serverSelector').value;
             let url = '';
