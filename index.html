@@ -246,10 +246,19 @@
         .video-wrapper { width: 100%; height: 100%; position: relative; }
         .video-wrapper iframe { width: 100%; height: 100%; border: none; }
 
+        /* Pop-up መከላከያ ክሊክ ሺልድ */
+        .click-shield {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 99;
+            background: transparent;
+            cursor: pointer;
+        }
+
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(18, 18, 26, 0.98); backdrop-filter: blur(20px);
-            border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 100;
+            border-top: 1px solid var(--border); display: flex; justify-around: space-around; padding: 8px 0; z-index: 100;
         }
         .nav-item {
             display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -372,7 +381,8 @@
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
-                <option value="multiembed" selected>⚡ Server 4 (MultiEmbed)</option>
+                <option value="vidsrc_me" selected>⚡ VidSrc.me (Main)</option>
+                <option value="multiembed">⚡ Server 2 (MultiEmbed)</option>
                 <option value="vidsrc_su">⚡ VidSrc.su</option>
                 <option value="vidsrc_cc">⚡ VidSrc.cc</option>
             </select>
@@ -385,7 +395,8 @@
         </div>
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper" id="videoWrapper">
-                <!-- Sandboxing እገዳው ሙሉ በሙሉ ተወግዷል -->
+                <!-- Popup መከላከያ Overlay -->
+                <div class="click-shield" id="clickShield" onclick="removeShield()"></div>
                 <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
             </div>
         </div>
@@ -441,6 +452,18 @@
         tg.expand();
         tg.setHeaderColor('#0a0a0f');
         tg.setBackgroundColor('#0a0a0f');
+
+        // ተጠቃሚው ከአፑ እንዳይወጣ እና ፖፕአፕ ብሮውዘር እንዳይከፍት መከላከያ
+        window.onbeforeunload = function() {
+            return "ከአፑ መውጣት ይፈልጋሉ?";
+        };
+
+        function removeShield() {
+            const shield = document.getElementById('clickShield');
+            if (shield) {
+                shield.style.display = 'none';
+            }
+        }
 
         function initUser() {
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -773,7 +796,9 @@
             let url = '';
 
             if (currentMedia.type === 'movie') {
-                if (serverKey === 'multiembed') {
+                if (serverKey === 'vidsrc_me') {
+                    url = `https://vidsrc.me/embed/movie?tmdb=${currentMedia.id}`;
+                } else if (serverKey === 'multiembed') {
                     url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1`;
                 } else if (serverKey === 'vidsrc_su') {
                     url = `https://vidsrc-embed.su/embed/movie/${currentMedia.id}`;
@@ -781,7 +806,9 @@
                     url = `https://vidsrc.cc/v2/embed/movie/${currentMedia.id}`;
                 }
             } else {
-                if (serverKey === 'multiembed') {
+                if (serverKey === 'vidsrc_me') {
+                    url = `https://vidsrc.me/embed/tv?tmdb=${currentMedia.id}&season=${currentMedia.season}&episode=${currentMedia.episode}`;
+                } else if (serverKey === 'multiembed') {
                     url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1&s=${currentMedia.season}&e=${currentMedia.episode}`;
                 } else if (serverKey === 'vidsrc_su') {
                     url = `https://vidsrc-embed.su/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
@@ -792,6 +819,13 @@
 
             const modal = document.getElementById('playerModal');
             const frame = document.getElementById('videoFrame');
+            const shield = document.getElementById('clickShield');
+
+            // ቪዲዮው በተቀየረ ቁጥር Overlay Shield እንደገና እንዲሰራ ማድረግ
+            if (shield) {
+                shield.style.display = 'block';
+            }
+
             document.getElementById('playerTitle').textContent = currentMedia.title;
 
             frame.src = url;
