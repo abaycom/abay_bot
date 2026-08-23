@@ -380,6 +380,7 @@
                 <option value="multiembed" selected>⚡ Server 4 (MultiEmbed)</option>
                 <option value="vidsrc_su">⚡ VidSrc.su</option>
                 <option value="vidsrc_cc">⚡ VidSrc.cc</option>
+                <option value="vidsrc_me">⚡ VidSrc.me</option>
             </select>
 
             <div class="player-controls-top">
@@ -788,6 +789,8 @@
                     url = `https://vidsrc-embed.su/embed/movie/${currentMedia.id}`;
                 } else if (serverKey === 'vidsrc_cc') {
                     url = `https://vidsrc.cc/v2/embed/movie/${currentMedia.id}`;
+                } else if (serverKey === 'vidsrc_me') {
+                    url = `https://vidsrc.me/embed/movie?tmdb=${currentMedia.id}`;
                 }
             } else {
                 if (serverKey === 'multiembed') {
@@ -796,6 +799,8 @@
                     url = `https://vidsrc-embed.su/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
                 } else if (serverKey === 'vidsrc_cc') {
                     url = `https://vidsrc.cc/v2/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
+                } else if (serverKey === 'vidsrc_me') {
+                    url = `https://vidsrc.me/embed/tv?tmdb=${currentMedia.id}&season=${currentMedia.season}&episode=${currentMedia.episode}`;
                 }
             }
 
@@ -912,6 +917,14 @@
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+
+        // ማንኛውም iframe ውስጥ ያለ ad script ገጹን ወደ ሌላ site/browser ሊወስድ ሲል
+        // browser-ው በራሱ "Leave site? / Cancel" ማረጋገጫ እንዲያሳይ ያስገድዳል።
+        window.addEventListener('beforeunload', function (e) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             initUser();
