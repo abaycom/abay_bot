@@ -384,6 +384,7 @@
             </select>
 
             <div class="player-controls-top">
+                <button class="player-btn" id="adBlockBtn" onclick="toggleAdBlock()" title="Ad Block"><i class="fas fa-shield-alt" style="color:#2ecc71;"></i></button>
                 <button class="player-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
                 <button class="player-btn" onclick="toggleRotation()" title="Rotate"><i class="fas fa-mobile-alt"></i></button>
                 <button class="player-btn" onclick="closePlayer()"><i class="fas fa-times"></i></button>
@@ -392,7 +393,7 @@
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper" id="videoWrapper">
                 <!-- Sandboxing እገዳው ሙሉ በሙሉ ተወግዷል -->
-                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager" referrerpolicy="no-referrer"></iframe>
+                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer"></iframe>
             </div>
         </div>
     </div>
@@ -428,6 +429,8 @@
         };
 
         let currentMedia = { id: null, type: 'movie', season: 1, episode: 1, title: '' };
+        let adBlockEnabled = true;
+        const SANDBOX_VALUE = 'allow-scripts allow-same-origin allow-forms allow-presentation';
 
         let state = {
             currentCategory: 'all',
@@ -808,6 +811,12 @@
             const frame = document.getElementById('videoFrame');
             document.getElementById('playerTitle').textContent = currentMedia.title;
 
+            if (adBlockEnabled) {
+                frame.setAttribute('sandbox', SANDBOX_VALUE);
+            } else {
+                frame.removeAttribute('sandbox');
+            }
+
             frame.src = url;
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -819,6 +828,20 @@
         function changeServer() {
             loadPlayerUrl();
             showToast('Changing video server...');
+        }
+
+        function toggleAdBlock() {
+            adBlockEnabled = !adBlockEnabled;
+            const btn = document.getElementById('adBlockBtn');
+            const icon = btn.querySelector('i');
+            if (adBlockEnabled) {
+                icon.style.color = '#2ecc71';
+                showToast('🛡️ Ad Block: ON (some servers may not play)');
+            } else {
+                icon.style.color = '#e50914';
+                showToast('⚠️ Ad Block: OFF (ads/popups may appear)');
+            }
+            if (currentMedia.id) loadPlayerUrl();
         }
 
         function closePlayer() {
