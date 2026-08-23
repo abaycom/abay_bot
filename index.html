@@ -377,10 +377,10 @@
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
-                <option value="multiembed" selected>⚡ Server 4 (MultiEmbed)</option>
-                <option value="vidsrc_su">⚡ VidSrc.su</option>
-                <option value="vidsrc_cc">⚡ VidSrc.cc</option>
-                <option value="vidsrc_me">⚡ VidSrc.me</option>
+                <option value="multiembed" selected>🛡️ MultiEmbed (Ad Block ይሰራል)</option>
+                <option value="vidsrc_su">VidSrc.su</option>
+                <option value="vidsrc_cc">VidSrc.cc</option>
+                <option value="vidsrc_me">VidSrc.me</option>
             </select>
 
             <div class="player-controls-top">
@@ -811,10 +811,24 @@
             const frame = document.getElementById('videoFrame');
             document.getElementById('playerTitle').textContent = currentMedia.title;
 
-            if (adBlockEnabled) {
+            // VidSrc (su/cc/me) ራሳቸው sandbox ካዩ ማጫወት ያቆማሉ - ስለዚህ
+            // ad-block sandboxing የሚሰራው በ MultiEmbed ላይ ብቻ ነው።
+            const sandboxSupported = (serverKey === 'multiembed');
+            const btn = document.getElementById('adBlockBtn');
+
+            if (adBlockEnabled && sandboxSupported) {
                 frame.setAttribute('sandbox', SANDBOX_VALUE);
+                btn.style.opacity = '1';
+                btn.querySelector('i').style.color = '#2ecc71';
             } else {
                 frame.removeAttribute('sandbox');
+                btn.style.opacity = adBlockEnabled ? '0.4' : '1';
+                if (adBlockEnabled && !sandboxSupported) {
+                    btn.querySelector('i').style.color = '#f39c12';
+                    showToast('⚠️ ይህ server Ad Block አይደግፍም - MultiEmbed ይሞክሩ');
+                } else {
+                    btn.querySelector('i').style.color = '#e50914';
+                }
             }
 
             frame.src = url;
@@ -832,13 +846,9 @@
 
         function toggleAdBlock() {
             adBlockEnabled = !adBlockEnabled;
-            const btn = document.getElementById('adBlockBtn');
-            const icon = btn.querySelector('i');
             if (adBlockEnabled) {
-                icon.style.color = '#2ecc71';
-                showToast('🛡️ Ad Block: ON (some servers may not play)');
+                showToast('🛡️ Ad Block: ON');
             } else {
-                icon.style.color = '#e50914';
                 showToast('⚠️ Ad Block: OFF (ads/popups may appear)');
             }
             if (currentMedia.id) loadPlayerUrl();
