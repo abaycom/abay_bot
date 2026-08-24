@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>🎬 Nilo Cinema</title>
+    <link rel="preconnect" href="https://api.themoviedb.org">
+    <link rel="preconnect" href="https://image.tmdb.org">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,9 +42,12 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-primary);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            z-index: 9999; transition: opacity 0.5s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s;
         }
         .loading-screen.hidden { opacity: 0; pointer-events: none; }
         .loader {
@@ -51,37 +59,86 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .loading-text {
-            margin-top: 20px; color: var(--text-secondary);
-            font-size: 14px; font-weight: 500;
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
         }
 
         .header {
-            position: fixed; top: 0; left: 0; right: 0;
-            background: rgba(10, 10, 15, 0.95); backdrop-filter: blur(20px);
-            z-index: 100; padding: 12px 16px; border-bottom: 1px solid var(--border);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
         }
-        .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .logo { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; color: var(--accent); }
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent);
+        }
         .logo i { font-size: 24px; }
-        .header-actions { display: flex; gap: 10px; align-items: center; }
-        .invite-btn {
-            background: var(--accent); color: white; border: none;
-            padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-            cursor: pointer; display: flex; align-items: center; gap: 6px; transition: transform 0.2s;
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
+        .invite-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.2s;
+        }
+        .invite-btn:hover { transform: translateY(-1px); }
 
         .search-container { position: relative; }
         .search-input {
-            width: 100%; background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 10px 40px 10px 14px; color: var(--text-primary);
-            font-size: 14px; outline: none; transition: border-color 0.3s; font-family: 'Inter', sans-serif;
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 40px 10px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+            font-family: 'Inter', sans-serif;
         }
         .search-input:focus { border-color: var(--accent); }
-        .search-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; }
-        .search-clear { position: absolute; right: 36px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; display: none; font-size: 14px; }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-icon {
+            position: absolute; right: 12px; top: 50%;
+            transform: translateY(-50%); color: var(--text-muted); cursor: pointer;
+        }
+        .search-clear {
+            position: absolute; right: 36px; top: 50%;
+            transform: translateY(-50%); color: var(--text-muted); cursor: pointer; display: none; font-size: 14px;
+        }
         .search-clear.visible { display: block; }
 
-        .categories { display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto; scrollbar-width: none; margin-top: 90px; }
+        .categories {
+            display: flex; gap: 8px; padding: 12px 16px;
+            overflow-x: auto; scrollbar-width: none; margin-top: 90px;
+        }
         .categories::-webkit-scrollbar { display: none; }
         .category-btn {
             flex-shrink: 0; padding: 8px 18px; border-radius: 20px;
@@ -89,90 +146,168 @@
             color: var(--text-secondary); font-size: 13px; font-weight: 500;
             cursor: pointer; transition: all 0.3s; white-space: nowrap; font-family: 'Inter', sans-serif;
         }
-        .category-btn:hover, .category-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .category-btn:hover, .category-btn.active {
+            background: var(--accent); color: white; border-color: var(--accent);
+        }
 
-        .section-title { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; margin: 20px 0 12px; }
+        .section-title {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; margin: 20px 0 12px;
+        }
         .section-title h2 { font-size: 18px; font-weight: 700; }
         .section-title a { color: var(--accent); font-size: 13px; text-decoration: none; font-weight: 500; cursor: pointer; }
 
-        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 16px; }
+        .movie-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 12px; padding: 0 16px;
+        }
         .movie-card {
             background: var(--bg-card); border-radius: 12px; overflow: hidden;
             cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; position: relative;
         }
-        .movie-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(229, 9, 20, 0.2); }
+        .movie-card:hover {
+            transform: translateY(-4px); box-shadow: 0 8px 24px rgba(229, 9, 20, 0.2);
+        }
         .movie-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
         .movie-info { padding: 10px; }
-        .movie-title { font-size: 13px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .movie-meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--text-muted); }
+        .movie-title {
+            font-size: 13px; font-weight: 600; line-height: 1.3;
+            overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .movie-meta {
+            display: flex; align-items: center; gap: 6px; margin-top: 6px;
+            font-size: 11px; color: var(--text-muted);
+        }
         .rating { display: flex; align-items: center; gap: 3px; color: var(--gold); font-weight: 600; }
+        .new-badge {
+            position: absolute; top: 8px; left: 8px; background: var(--accent);
+            color: white; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+        }
+        .top-badge {
+            position: absolute; top: 8px; right: 8px; background: var(--gold);
+            color: #000; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+        }
         .card-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-        .share-card-btn, .fav-btn { cursor: pointer; color: var(--text-secondary); }
-        .share-card-btn:hover, .fav-btn:hover { color: var(--accent); }
+        .share-card-btn, .fav-btn { cursor: pointer; transition: transform 0.2s; color: var(--text-secondary); }
+        .share-card-btn:hover, .fav-btn:hover { transform: scale(1.2); color: var(--accent); }
 
-        .details-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10, 10, 15, 0.98); z-index: 1000; display: none; flex-direction: column; overflow-y: auto; padding-bottom: 40px; }
+        .details-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 10, 15, 0.98); z-index: 1000;
+            display: none; flex-direction: column; overflow-y: auto; padding-bottom: 40px;
+        }
         .details-modal.active { display: flex; }
-        .details-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(18, 18, 26, 0.95); position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); }
+        .details-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; background: rgba(18, 18, 26, 0.95);
+            position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border);
+        }
         .details-title { font-size: 16px; font-weight: 700; max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .details-body { padding: 20px; max-width: 600px; margin: 0 auto; width: 100%; }
-        .details-banner { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; margin-bottom: 16px; }
+        .details-banner {
+            width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; margin-bottom: 16px;
+        }
         .details-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
-
+        
         .season-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .season-tab { padding: 8px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .season-tab {
+            padding: 8px 16px; border-radius: 8px; background: var(--bg-card);
+            border: 1px solid var(--border); color: var(--text-secondary);
+            font-size: 13px; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; transition: all 0.3s;
+        }
         .season-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-
+        
         .episode-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-        .episode-btn { padding: 12px 8px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); font-size: 13px; cursor: pointer; text-align: center; font-weight: 600; }
+        .episode-btn {
+            padding: 12px 8px; border-radius: 8px; background: var(--bg-card);
+            border: 1px solid var(--border); color: var(--text-secondary);
+            font-size: 13px; cursor: pointer; text-align: center; font-family: 'Inter', sans-serif; transition: all 0.3s; font-weight: 600;
+        }
         .episode-btn:hover, .episode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        .player-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 1100; display: none; flex-direction: column; }
+        .player-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: #000; z-index: 1100; display: none; flex-direction: column;
+        }
         .player-modal.active { display: flex; }
-        .player-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px; }
+        .player-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px;
+        }
         .player-controls-top { display: flex; gap: 10px; align-items: center; }
-        .server-selector { background: var(--bg-card); border: 1px solid var(--border); color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
-        .player-btn { background: rgba(255,255,255,0.15); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
         
+        .server-selector {
+            background: var(--bg-card); border: 1px solid var(--border); color: white;
+            padding: 6px 12px; border-radius: 8px; font-size: 12px; outline: none; font-family: 'Inter', sans-serif; cursor: pointer;
+        }
+
+        .player-btn {
+            background: rgba(255,255,255,0.15); border: none; color: white;
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
         .video-container { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: #000; }
         .video-wrapper { width: 100%; height: 100%; position: relative; }
         .video-wrapper iframe { width: 100%; height: 100%; border: none; }
 
-        /* ማስታወቂያ እንዳይከፈት ገደብ አድራጊ shield */
-        .click-shield {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 99;
-            background: transparent;
-            cursor: pointer;
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(18, 18, 26, 0.98); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 100;
         }
-
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(18, 18, 26, 0.98); backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 16px; color: var(--text-muted); text-decoration: none; font-size: 11px; cursor: pointer; transition: color 0.3s; font-weight: 500; }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            padding: 6px 16px; color: var(--text-muted); text-decoration: none; font-size: 11px; cursor: pointer; transition: color 0.3s; font-weight: 500;
+        }
         .nav-item i { font-size: 20px; }
         .nav-item.active { color: var(--accent); }
 
-        .invite-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .invite-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
         .invite-modal.active { display: flex; }
-        .invite-box { background: var(--bg-secondary); border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; text-align: center; border: 1px solid var(--border); }
-        .invite-link-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-        .invite-link-box input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 13px; outline: none; }
+        .invite-box {
+            background: var(--bg-secondary); border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; text-align: center; border: 1px solid var(--border);
+        }
+        .invite-box h3 { font-size: 20px; margin-bottom: 8px; font-weight: 700; }
+        .invite-box p { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; }
+        .invite-link-box {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+        }
+        .invite-link-box input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 13px; outline: none; font-family: 'Inter', sans-serif; }
         .copy-btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600; }
         .share-btn { width: 100%; background: #0088cc; color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .close-invite { margin-top: 12px; background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; font-weight: 500; }
 
-        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--bg-card); color: var(--text-primary); padding: 12px 24px; border-radius: 10px; font-size: 14px; z-index: 400; opacity: 0; transition: all 0.3s; border: 1px solid var(--border); font-weight: 500; }
+        .toast {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card); color: var(--text-primary); padding: 12px 24px; border-radius: 10px;
+            font-size: 14px; z-index: 400; opacity: 0; transition: all 0.3s; border: 1px solid var(--border); font-weight: 500;
+        }
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
         .content { padding-bottom: 80px; }
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
         .empty-state i { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 { color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; }
 
-        .hero-banner { margin: 0 16px 16px; border-radius: 16px; overflow: hidden; height: 150px; background: linear-gradient(135deg, #1a1a2e, #2a1a3e); display: flex; align-items: center; justify-content: center; }
+        .hero-banner {
+            margin: 0 16px 16px; border-radius: 16px; overflow: hidden; height: 150px;
+            background: linear-gradient(135deg, #1a1a2e, #2a1a3e); display: flex; align-items: center; justify-content: center;
+        }
         .hero-content { text-align: center; padding: 20px; }
         .hero-content h1 { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: var(--accent); }
+        .hero-content p { color: var(--text-secondary); font-size: 14px; }
 
-        @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 1024px) { .movie-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 768px) {
+            .movie-grid { grid-template-columns: repeat(3, 1fr); }
+            .episode-grid { grid-template-columns: repeat(8, 1fr); }
+        }
+        @media (min-width: 1024px) {
+            .movie-grid { grid-template-columns: repeat(4, 1fr); }
+        }
     </style>
 </head>
 <body>
@@ -183,9 +318,14 @@
 
     <header class="header">
         <div class="header-top">
-            <div class="logo"><i class="fas fa-film"></i><span>Nilo Cinema</span></div>
+            <div class="logo">
+                <i class="fas fa-film"></i>
+                <span>Nilo Cinema</span>
+            </div>
             <div class="header-actions">
-                <button class="invite-btn" onclick="showInvite()"><i class="fas fa-user-plus"></i> Invite</button>
+                <button class="invite-btn" onclick="showInvite()">
+                    <i class="fas fa-user-plus"></i> Invite
+                </button>
             </div>
         </div>
         <div class="search-container">
@@ -219,7 +359,9 @@
     <div class="details-modal" id="detailsModal">
         <div class="details-header">
             <div class="details-title" id="detailsTitle">Series Title</div>
-            <button class="player-btn" onclick="closeDetailsModal()"><i class="fas fa-times"></i></button>
+            <button class="player-btn" onclick="closeDetailsModal()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         <div class="details-body">
             <img class="details-banner" id="detailsBanner" src="" alt="Banner">
@@ -235,27 +377,22 @@
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
-                <option value="vidlink" selected>⚡ VidLink (Fast - Clean)</option>
-                <option value="vidsrc_to">⚡ VidSrc.to (Backup)</option>
-                <option value="embedsu">⚡ Embed.su (Clean)</option>
-                <option value="embed2">⚡ 2Embed</option>
+                <option value="multiembed" selected>MultiEmbed</option>
+                <option value="vidsrc_su">VidSrc.su</option>
+                <option value="vidsrc_cc">VidSrc.cc</option>
+                <option value="vidsrc_me">VidSrc.me</option>
             </select>
 
             <div class="player-controls-top">
-                <button class="player-btn" onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button>
-                <button class="player-btn" onclick="toggleRotation()"><i class="fas fa-mobile-alt"></i></button>
+                <button class="player-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                <button class="player-btn" onclick="toggleRotation()" title="Rotate"><i class="fas fa-mobile-alt"></i></button>
                 <button class="player-btn" onclick="closePlayer()"><i class="fas fa-times"></i></button>
             </div>
         </div>
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper" id="videoWrapper">
-                <div class="click-shield" id="clickShield" onclick="removeShield()"></div>
-                <!-- sandbox attribute ማስታወቂያ እንዳይከፈት ይከለክላል -->
-                <iframe id="videoFrame" 
-                        sandbox="allow-scripts allow-same-origin allow-forms" 
-                        allowfullscreen 
-                        allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
-                </iframe>
+                <!-- Sandboxing እገዳው ሙሉ በሙሉ ተወግዷል -->
+                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer"></iframe>
             </div>
         </div>
     </div>
@@ -264,7 +401,7 @@
         <div class="invite-box">
             <i class="fas fa-gift" style="font-size:40px;color:var(--accent);margin-bottom:12px;"></i>
             <h3>Invite Friends</h3>
-            <p>Invite your friends to Nilo Cinema!</p>
+            <p>Invite your friends and earn rewards!</p>
             <div class="invite-link-box">
                 <input type="text" id="inviteLink" readonly>
                 <button class="copy-btn" onclick="copyInvite()">Copy</button>
@@ -300,25 +437,38 @@
             searchResults: [],
             favorites: JSON.parse(localStorage.getItem('nilo_favorites') || '[]'),
             userData: null,
-            isRotated: false
+            isRotated: false,
+            registeredUsers: JSON.parse(localStorage.getItem('nilo_registeredUsers') || '[]'),
+            totalPlays: parseInt(localStorage.getItem('nilo_totalPlays') || '0')
         };
 
-        let tg = window.Telegram.WebApp;
+        let tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : {
+            ready: () => {}, expand: () => {}, setHeaderColor: () => {}, setBackgroundColor: () => {},
+            initDataUnsafe: {}, HapticFeedback: { impactOccurred: () => {}, notificationOccurred: () => {} },
+            themeParams: {}, colorScheme: 'dark'
+        };
         tg.ready();
         tg.expand();
         tg.setHeaderColor('#0a0a0f');
         tg.setBackgroundColor('#0a0a0f');
 
-        function removeShield() {
-            const shield = document.getElementById('clickShield');
-            if (shield) {
-                shield.style.display = 'none';
-            }
-        }
-
         function initUser() {
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                 state.userData = tg.initDataUnsafe.user;
+                const userInfo = {
+                    id: state.userData.id,
+                    first_name: state.userData.first_name,
+                    username: state.userData.username || '',
+                    joined: new Date().toISOString(),
+                    lastActive: new Date().toISOString()
+                };
+                const existingIndex = state.registeredUsers.findIndex(u => u.id === userInfo.id);
+                if (existingIndex === -1) {
+                    state.registeredUsers.push(userInfo);
+                } else {
+                    state.registeredUsers[existingIndex].lastActive = new Date().toISOString();
+                }
+                localStorage.setItem('nilo_registeredUsers', JSON.stringify(state.registeredUsers));
             }
         }
 
@@ -478,10 +628,14 @@
                 const year = (item.release_date || item.first_air_date || '').substring(0, 4);
                 const rating = item.vote_average ? item.vote_average.toFixed(1) : 'N/A';
                 const isFav = state.favorites.some(f => f.id === item.id);
+                const isNew = item.categories && item.categories.includes('new');
+                const isTop = item.categories && item.categories.includes('top');
                 const mediaType = item.isTV || item.name ? 'tv' : 'movie';
 
                 return `
                     <div class="movie-card" onclick="handleMediaClick(${item.id}, '${mediaType}')">
+                        ${isNew ? '<span class="new-badge">NEW</span>' : ''}
+                        ${isTop ? '<span class="top-badge">TOP</span>' : ''}
                         <img class="movie-poster" src="${poster}" alt="${title}" loading="lazy">
                         <div class="movie-info">
                             <div class="movie-title">${title}</div>
@@ -489,7 +643,7 @@
                                 <span class="rating"><i class="fas fa-star"></i> ${rating}</span>
                                 <span>${year}</span>
                                 <div class="card-actions">
-                                    <span class="share-card-btn" onclick="event.stopPropagation();shareMedia(${item.id}, '${title}')">
+                                    <span class="share-card-btn" onclick="event.stopPropagation();shareMedia(${item.id}, '${title}')" title="Share">
                                         <i class="fas fa-share-alt"></i>
                                     </span>
                                     <span class="fav-btn" onclick="event.stopPropagation();toggleFavorite(${item.id})">
@@ -629,40 +783,42 @@
             let url = '';
 
             if (currentMedia.type === 'movie') {
-                if (serverKey === 'vidlink') {
-                    url = `https://vidlink.pro/movie/${currentMedia.id}`;
-                } else if (serverKey === 'vidsrc_to') {
-                    url = `https://vidsrc.to/embed/movie/${currentMedia.id}`;
-                } else if (serverKey === 'embedsu') {
-                    url = `https://embed.su/embed/movie/${currentMedia.id}`;
-                } else if (serverKey === 'embed2') {
-                    url = `https://www.2embed.cc/embed/${currentMedia.id}`;
+                if (serverKey === 'multiembed') {
+                    url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1`;
+                } else if (serverKey === 'vidsrc_su') {
+                    url = `https://vidsrc-embed.su/embed/movie/${currentMedia.id}`;
+                } else if (serverKey === 'vidsrc_cc') {
+                    url = `https://vidsrc.cc/v2/embed/movie/${currentMedia.id}`;
+                } else if (serverKey === 'vidsrc_me') {
+                    url = `https://vidsrc.me/embed/movie?tmdb=${currentMedia.id}`;
                 }
             } else {
-                if (serverKey === 'vidlink') {
-                    url = `https://vidlink.pro/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
-                } else if (serverKey === 'vidsrc_to') {
-                    url = `https://vidsrc.to/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
-                } else if (serverKey === 'embedsu') {
-                    url = `https://embed.su/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
-                } else if (serverKey === 'embed2') {
-                    url = `https://www.2embed.cc/embedtv/${currentMedia.id}&s=${currentMedia.season}&e=${currentMedia.episode}`;
+                if (serverKey === 'multiembed') {
+                    url = `https://multiembed.mov/?video_id=${currentMedia.id}&tmdb=1&s=${currentMedia.season}&e=${currentMedia.episode}`;
+                } else if (serverKey === 'vidsrc_su') {
+                    url = `https://vidsrc-embed.su/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
+                } else if (serverKey === 'vidsrc_cc') {
+                    url = `https://vidsrc.cc/v2/embed/tv/${currentMedia.id}/${currentMedia.season}/${currentMedia.episode}`;
+                } else if (serverKey === 'vidsrc_me') {
+                    url = `https://vidsrc.me/embed/tv?tmdb=${currentMedia.id}&season=${currentMedia.season}&episode=${currentMedia.episode}`;
                 }
             }
 
             const modal = document.getElementById('playerModal');
             const frame = document.getElementById('videoFrame');
-            const shield = document.getElementById('clickShield');
-
-            if (shield) {
-                shield.style.display = 'block';
-            }
-
             document.getElementById('playerTitle').textContent = currentMedia.title;
 
+            // ማስታወሻ: MultiEmbed/VidSrc.su/VidSrc.cc/VidSrc.me ሁሉም sandbox
+            // ካገኙ ራሳቸውን ስለሚያግዱ (anti-sandbox detection አላቸው)፣ በ HTML
+            // ደረጃ ads/popups ን 100% ማገድ አይቻልም። ለ ad-block ተጠቃሚው
+            // browser-level መፍትሄ (Brave/AdGuard) መጠቀም አለበት።
+            frame.removeAttribute('sandbox');
             frame.src = url;
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
+
+            state.totalPlays++;
+            localStorage.setItem('nilo_totalPlays', state.totalPlays);
         }
 
         function changeServer() {
@@ -690,7 +846,7 @@
             } else {
                 wrapper.style.transform = '';
                 wrapper.style.width = ''; wrapper.style.height = '';
-                wrapper.style.position = ''; wrapper.style.left = '';
+                wrapper.style.position = ''; wrapper.style.top = ''; wrapper.style.left = '';
                 wrapper.style.marginLeft = ''; wrapper.style.marginTop = '';
             }
         }
@@ -755,7 +911,7 @@
         function shareInvite() {
             const link = document.getElementById('inviteLink').value;
             const text = '🎬 Nilo Cinema - Watch Movies & Series for Free!';
-            if (tg.openTelegramLink) {
+            if (tg.openParameter || tg.openTelegramLink) {
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
             }
         }
@@ -766,6 +922,14 @@
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
+
+        // ማንኛውም iframe ውስጥ ያለ ad script ገጹን ወደ ሌላ site/browser ሊወስድ ሲል
+        // browser-ው በራሱ "Leave site? / Cancel" ማረጋገጫ እንዲያሳይ ያስገድዳል።
+        window.addEventListener('beforeunload', function (e) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             initUser();
