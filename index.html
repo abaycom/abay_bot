@@ -250,6 +250,24 @@
         .video-container { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: #000; }
         .video-wrapper { width: 100%; height: 100%; position: relative; }
         .video-wrapper iframe { width: 100%; height: 100%; border: none; }
+        .video-tap-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.55); z-index: 5;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .tap-play-btn {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: var(--accent); display: flex; align-items: center; justify-content: center;
+            font-size: 26px; color: white; box-shadow: 0 4px 20px rgba(229,9,20,0.5);
+        }
+        .player-modal.fs-header-hidden .player-header { display: none; }
+        .fs-exit-btn {
+            position: fixed; top: 10px; right: 10px; z-index: 50;
+            width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(0,0,0,0.5); border: none; color: white;
+            display: none; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;
+        }
+        .player-modal.fs-header-hidden .fs-exit-btn { display: flex; }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
@@ -391,10 +409,13 @@
         </div>
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper" id="videoWrapper">
-                <!-- Sandboxing እገዳው ሙሉ በሙሉ ተወግዷል -->
-                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer"></iframe>
+                <div class="video-tap-overlay" id="tapOverlay" onclick="hideTapOverlay()">
+                    <div class="tap-play-btn"><i class="fas fa-play"></i></div>
+                </div>
+                <iframe id="videoFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture" loading="eager" referrerpolicy="no-referrer"></iframe>
             </div>
         </div>
+        <button class="fs-exit-btn" onclick="toggleRotation()" title="Exit"><i class="fas fa-compress"></i></button>
     </div>
 
     <div class="invite-modal" id="inviteModal">
@@ -817,8 +838,17 @@
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
 
+            // የመጀመሪያውን tap overlay ላይ በማድረግ iframe ውስጥ ያለው
+            // "የመጀመሪያ ጠቅታ" ad-trigger እንዳይነሳ እናደርጋለን።
+            const overlay = document.getElementById('tapOverlay');
+            overlay.style.display = 'flex';
+
             state.totalPlays++;
             localStorage.setItem('nilo_totalPlays', state.totalPlays);
+        }
+
+        function hideTapOverlay() {
+            document.getElementById('tapOverlay').style.display = 'none';
         }
 
         function changeServer() {
@@ -830,11 +860,22 @@
             const modal = document.getElementById('playerModal');
             document.getElementById('videoFrame').src = '';
             modal.classList.remove('active');
+            modal.classList.remove('fs-header-hidden');
             document.body.style.overflow = '';
+            if (state.isRotated) {
+                state.isRotated = false;
+                const wrapper = document.getElementById('videoWrapper');
+                wrapper.style.transform = '';
+                wrapper.style.width = ''; wrapper.style.height = '';
+                wrapper.style.position = ''; wrapper.style.top = ''; wrapper.style.left = '';
+                wrapper.style.marginLeft = ''; wrapper.style.marginTop = '';
+            }
+            if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         }
 
         function toggleRotation() {
             const wrapper = document.getElementById('videoWrapper');
+            const modal = document.getElementById('playerModal');
             state.isRotated = !state.isRotated;
             if (state.isRotated) {
                 wrapper.style.transform = 'rotate(90deg)';
@@ -843,11 +884,24 @@
                 wrapper.style.position = 'absolute';
                 wrapper.style.top = '50%'; wrapper.style.left = '50%';
                 wrapper.style.marginLeft = '-50vh'; wrapper.style.marginTop = '-50vw';
+
+                // ወደ ትክክለኛ Fullscreen ገብተን ከላይ ያሉትን ቁልፎች እንደብቃለን
+                modal.classList.add('fs-header-hidden');
+                modal.requestFullscreen().catch(() => {});
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(() => {});
+                }
             } else {
                 wrapper.style.transform = '';
                 wrapper.style.width = ''; wrapper.style.height = '';
                 wrapper.style.position = ''; wrapper.style.top = ''; wrapper.style.left = '';
                 wrapper.style.marginLeft = ''; wrapper.style.marginTop = '';
+
+                modal.classList.remove('fs-header-hidden');
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
             }
         }
 
@@ -859,6 +913,14 @@
                 document.exitFullscreen().catch(() => {});
             }
         }
+
+        // Fullscreen ውጪ ተጠቃሚው (ለምሳሌ system back key/gesture) ቢወጣ
+        // header/rotation state ወደ መደበኛው ይመለስ
+        document.addEventListener('fullscreenchange', function () {
+            if (!document.fullscreenElement && state.isRotated) {
+                toggleRotation();
+            }
+        });
 
         function toggleFavorite(id) {
             const index = state.favorites.findIndex(f => f.id === id);
