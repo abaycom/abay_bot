@@ -931,6 +931,29 @@
             return '';
         });
 
+        // ተጨማሪ መከላከያ: ማጫወቻው ክፍት እያለ (player active) app-ው focus
+        // ካጣ (ብዙ ጊዜ popup/new-tab ad ሲከፈት ይህ ይሆናል)፣ በፍጥነት
+        // focus-ን ወደዚህ ገጽ ለመመለስ እንሞክራለን። ማሳሰቢያ: ይህ ሙሉ በሙሉ
+        // ወደ ሌላ app (ለምሳሌ Chrome) ሙሉ በሙሉ መውጣትን መከላከል አይችልም -
+        // JavaScript የ OS-level app switch ን የመቆጣጠር ስልጣን የለውም፣
+        // ግን በተመሳሳይ tab/WebView ውስጥ ለሚከፈቱ popups ውጤታማ ነው።
+        let refocusAttempts = 0;
+        function attemptRefocus() {
+            const playerActive = document.getElementById('playerModal').classList.contains('active');
+            if (!playerActive) return;
+            refocusAttempts++;
+            window.focus();
+            if (refocusAttempts < 3) {
+                setTimeout(attemptRefocus, 150);
+            } else {
+                refocusAttempts = 0;
+            }
+        }
+        window.addEventListener('blur', attemptRefocus);
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) attemptRefocus();
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             initUser();
             loadMovies();
