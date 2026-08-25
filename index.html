@@ -226,6 +226,14 @@
             width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; margin-bottom: 16px;
         }
         .details-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
+
+        .anime-meta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+        .anime-meta-chip {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+            padding: 6px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 600;
+        }
+        .anime-trailer-wrap { width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: #000; }
+        .anime-trailer-wrap iframe { width: 100%; height: 100%; border: none; }
         
         .season-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
         .season-tab {
@@ -421,6 +429,23 @@
         </div>
     </div>
 
+    <div class="details-modal" id="animeDetailsModal">
+        <div class="details-header">
+            <div class="details-title" id="animeDetailsTitle">Anime Title</div>
+            <button class="player-btn" onclick="closeAnimeDetailsModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="details-body">
+            <img class="details-banner" id="animeDetailsBanner" src="" alt="Banner">
+            <div class="anime-meta-row" id="animeMetaRow"></div>
+            <p class="details-desc" id="animeDetailsDesc">Synopsis...</p>
+            <div class="anime-trailer-wrap" id="animeTrailerWrap" style="display:none;">
+                <iframe id="animeTrailerFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+            </div>
+        </div>
+    </div>
+
     <div class="player-modal" id="playerModal">
         <div class="player-header">
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
@@ -466,6 +491,7 @@
         <div class="nav-item active" onclick="switchTab('home')"><i class="fas fa-home"></i><span>Home</span></div>
         <div class="nav-item" onclick="switchTab('movies')"><i class="fas fa-film"></i><span>Movies</span></div>
         <div class="nav-item" onclick="switchTab('series')"><i class="fas fa-tv"></i><span>Series</span></div>
+        <div class="nav-item" onclick="switchTab('anime')"><i class="fas fa-dragon"></i><span>Anime</span></div>
         <div class="nav-item" onclick="switchTab('favorites')"><i class="fas fa-heart"></i><span>My List</span></div>
     </nav>
 
@@ -485,6 +511,8 @@
             favSubTab: 'favorites',
             movies: [],
             tvShows: [],
+            animeList: [],
+            animeAiring: [],
             searchResults: [],
             favorites: JSON.parse(localStorage.getItem('nilo_favorites') || '[]'),
             history: JSON.parse(localStorage.getItem('nilo_history') || '[]'),
@@ -571,6 +599,37 @@
             document.getElementById('loadingScreen').classList.add('hidden');
         }
 
+        const JIKAN_BASE_URL = 'https://api.jikan.moe/v4';
+        async function fetchFromJikan(endpoint) {
+            try {
+                const response = await fetch(`${JIKAN_BASE_URL}${endpoint}`);
+                if (!response.ok) throw new Error('Jikan API Error');
+                return await response.json();
+            } catch (error) {
+                console.error('Jikan Error:', error);
+                return null;
+            }
+        }
+
+        let animeLoaded = false;
+        async function loadAnime() {
+            if (animeLoaded) return;
+            animeLoaded = true;
+            const topData = await fetchFromJikan('/top/anime?filter=bypopularity&limit=20');
+            if (topData && topData.data) {
+                state.animeList = topData.data;
+            }
+            renderContent();
+
+            // Jikan rate limit (≈3 req/sec) ስለሆነ በትንሽ delay ተከታዩን እናመጣለን
+            await new Promise(r => setTimeout(r, 500));
+            const airingData = await fetchFromJikan('/seasons/now?limit=16');
+            if (airingData && airingData.data) {
+                state.animeAiring = airingData.data;
+                renderContent();
+            }
+        }
+
         let searchTimeout;
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
@@ -650,6 +709,25 @@
             } else if (state.currentTab === 'series') {
                 container.innerHTML = `<div class="movie-grid" id="seriesGrid"></div>`;
                 renderMovieGrid('seriesGrid', state.tvShows);
+            } else if (state.currentTab === 'anime') {
+                if (state.animeList.length === 0 && (!state.animeAiring || state.animeAiring.length === 0)) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-dragon"></i>
+                            <h3>Loading Anime...</h3>
+                            <p>እባክዎ ትንሽ ይጠብቁ</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    if (state.animeAiring && state.animeAiring.length > 0) {
+                        html += `<div class="section-title"><h2>📡 Currently Airing</h2></div><div class="movie-grid" id="animeAiringGrid"></div>`;
+                    }
+                    html += `<div class="section-title"><h2>🏆 Top Anime</h2></div><div class="movie-grid" id="animeTopGrid"></div>`;
+                    container.innerHTML = html;
+                    if (state.animeAiring && state.animeAiring.length > 0) renderAnimeGrid('animeAiringGrid', state.animeAiring);
+                    renderAnimeGrid('animeTopGrid', state.animeList);
+                }
             } else if (state.currentTab === 'favorites') {
                 const subTabsHtml = `
                     <div class="fav-subtabs">
@@ -789,6 +867,72 @@
             }).join('');
         }
 
+        function renderAnimeGrid(gridId, items) {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            if (!items || items.length === 0) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-dragon"></i><h3>No anime found</h3></div>`;
+                return;
+            }
+
+            grid.innerHTML = items.map(item => {
+                const poster = item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || 'https://via.placeholder.com/300x450/1a1a2e/ffffff?text=No+Image';
+                const title = item.title_english || item.title || 'Unknown';
+                const year = item.aired?.prop?.from?.year || item.year || '';
+                const rating = item.score ? item.score.toFixed(1) : 'N/A';
+
+                return `
+                    <div class="movie-card" onclick="showAnimeDetails(${item.mal_id})">
+                        <img class="movie-poster" src="${poster}" alt="${title}" loading="lazy">
+                        <div class="movie-info">
+                            <div class="movie-title">${title}</div>
+                            <div class="movie-meta">
+                                <span class="rating"><i class="fas fa-star"></i> ${rating}</span>
+                                <span>${year}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function showAnimeDetails(malId) {
+            const res = await fetchFromJikan(`/anime/${malId}/full`);
+            if (!res || !res.data) { showToast('⚠️ Could not load anime details'); return; }
+            const a = res.data;
+
+            document.getElementById('animeDetailsTitle').textContent = a.title_english || a.title;
+            document.getElementById('animeDetailsBanner').src = a.images?.jpg?.large_image_url || '';
+            document.getElementById('animeDetailsDesc').textContent = a.synopsis || 'No synopsis available.';
+
+            const metaRow = document.getElementById('animeMetaRow');
+            const chips = [];
+            if (a.score) chips.push(`⭐ ${a.score}`);
+            if (a.episodes) chips.push(`${a.episodes} Episodes`);
+            if (a.status) chips.push(a.status);
+            if (a.genres && a.genres.length) chips.push(a.genres.slice(0, 3).map(g => g.name).join(', '));
+            metaRow.innerHTML = chips.map(c => `<span class="anime-meta-chip">${c}</span>`).join('');
+
+            const trailerWrap = document.getElementById('animeTrailerWrap');
+            const trailerFrame = document.getElementById('animeTrailerFrame');
+            if (a.trailer && a.trailer.embed_url) {
+                trailerFrame.src = a.trailer.embed_url;
+                trailerWrap.style.display = 'block';
+            } else {
+                trailerFrame.src = '';
+                trailerWrap.style.display = 'none';
+            }
+
+            document.getElementById('animeDetailsModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAnimeDetailsModal() {
+            document.getElementById('animeDetailsModal').classList.remove('active');
+            document.getElementById('animeTrailerFrame').src = '';
+            document.body.style.overflow = '';
+        }
+
         document.querySelectorAll('.category-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
@@ -816,7 +960,8 @@
             if (state.currentTab === 'home') navItems[0].classList.add('active');
             else if (state.currentTab === 'movies') navItems[1].classList.add('active');
             else if (state.currentTab === 'series') navItems[2].classList.add('active');
-            else if (state.currentTab === 'favorites') navItems[3].classList.add('active');
+            else if (state.currentTab === 'anime') navItems[3].classList.add('active');
+            else if (state.currentTab === 'favorites') navItems[4].classList.add('active');
         }
 
         function switchTabFromLink(tab, subTab) {
@@ -834,6 +979,7 @@
             event.currentTarget.classList.add('active');
             renderContent();
             window.scrollTo(0, 0);
+            if (tab === 'anime') loadAnime();
         }
 
         async function handleMediaClick(id, type) {
