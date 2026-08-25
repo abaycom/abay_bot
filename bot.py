@@ -12,7 +12,7 @@ from aiogram.enums import ParseMode
 
 # ==================== CONFIGURATION ====================
 # ቦት ቶከንዎን እና የዌብ አፕ ሊንክዎን እዚህ ይተኩ ወይም በ Railway Environment Variables ውስጥ ያስገቡ
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8650486535:AAGEBJA2DJjIy2NkiVFnYn4HlhDmiclSRUU")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-production-edcca.up.railway.app")
 PORT = int(os.getenv("PORT", 8080))
 ADMIN_IDS = [5049565154]
