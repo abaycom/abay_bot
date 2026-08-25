@@ -27,7 +27,7 @@
             --gold: #ffd700;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -36,6 +36,11 @@
             min-height: 100vh;
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .loading-screen {
@@ -106,9 +111,19 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: transform 0.2s;
+            transition: transform 0.12s ease;
         }
-        .invite-btn:hover { transform: translateY(-1px); }
+        .invite-btn:active { transform: scale(0.93); }
+
+        .history-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer; transition: transform 0.12s ease;
+        }
+        .history-btn:active { transform: scale(0.9); }
 
         .search-container { position: relative; }
         .search-input {
@@ -144,11 +159,12 @@
             flex-shrink: 0; padding: 8px 18px; border-radius: 20px;
             border: 1px solid var(--border); background: var(--bg-card);
             color: var(--text-secondary); font-size: 13px; font-weight: 500;
-            cursor: pointer; transition: all 0.3s; white-space: nowrap; font-family: 'Inter', sans-serif;
+            cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; white-space: nowrap; font-family: 'Inter', sans-serif;
         }
-        .category-btn:hover, .category-btn.active {
+        .category-btn.active {
             background: var(--accent); color: white; border-color: var(--accent);
         }
+        .category-btn:active { transform: scale(0.94); }
 
         .section-title {
             display: flex; align-items: center; justify-content: space-between;
@@ -163,10 +179,11 @@
         }
         .movie-card {
             background: var(--bg-card); border-radius: 12px; overflow: hidden;
-            cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; position: relative;
+            cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; position: relative;
+            animation: fadeInUp 0.35s ease both;
         }
-        .movie-card:hover {
-            transform: translateY(-4px); box-shadow: 0 8px 24px rgba(229, 9, 20, 0.2);
+        .movie-card:active {
+            transform: scale(0.97); box-shadow: 0 4px 16px rgba(229, 9, 20, 0.25);
         }
         .movie-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
         .movie-info { padding: 10px; }
@@ -189,8 +206,8 @@
             color: #000; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
         }
         .card-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-        .share-card-btn, .fav-btn { cursor: pointer; transition: transform 0.2s; color: var(--text-secondary); }
-        .share-card-btn:hover, .fav-btn:hover { transform: scale(1.2); color: var(--accent); }
+        .share-card-btn, .fav-btn { cursor: pointer; transition: transform 0.12s ease; color: var(--text-secondary); }
+        .share-card-btn:active, .fav-btn:active { transform: scale(1.3); color: var(--accent); }
 
         .details-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -214,17 +231,19 @@
         .season-tab {
             padding: 8px 16px; border-radius: 8px; background: var(--bg-card);
             border: 1px solid var(--border); color: var(--text-secondary);
-            font-size: 13px; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; transition: all 0.3s;
+            font-size: 13px; cursor: pointer; white-space: nowrap; font-family: 'Inter', sans-serif; transition: background 0.15s, transform 0.1s;
         }
         .season-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-        
+        .season-tab:active { transform: scale(0.95); }
+
         .episode-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
         .episode-btn {
             padding: 12px 8px; border-radius: 8px; background: var(--bg-card);
             border: 1px solid var(--border); color: var(--text-secondary);
-            font-size: 13px; cursor: pointer; text-align: center; font-family: 'Inter', sans-serif; transition: all 0.3s; font-weight: 600;
+            font-size: 13px; cursor: pointer; text-align: center; font-family: 'Inter', sans-serif; transition: background 0.15s, transform 0.1s; font-weight: 600;
         }
-        .episode-btn:hover, .episode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .episode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .episode-btn:active { transform: scale(0.93); background: var(--accent); color: white; border-color: var(--accent); }
 
         .player-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -246,7 +265,10 @@
             background: rgba(255,255,255,0.15); border: none; color: white;
             width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
             display: flex; align-items: center; justify-content: center; font-size: 14px;
+            transition: transform 0.12s ease, background 0.12s ease;
         }
+        .player-btn:active { transform: scale(0.88); background: rgba(255,255,255,0.3); }
+        .download-btn { background: rgba(46, 204, 113, 0.25); }
         .video-container { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; background: #000; }
         .video-wrapper { width: 100%; height: 100%; position: relative; }
         .video-wrapper iframe { width: 100%; height: 100%; border: none; }
@@ -276,10 +298,29 @@
         }
         .nav-item {
             display: flex; flex-direction: column; align-items: center; gap: 4px;
-            padding: 6px 16px; color: var(--text-muted); text-decoration: none; font-size: 11px; cursor: pointer; transition: color 0.3s; font-weight: 500;
+            padding: 6px 16px; color: var(--text-muted); text-decoration: none; font-size: 11px; cursor: pointer; transition: color 0.15s ease, transform 0.1s ease; font-weight: 500;
         }
         .nav-item i { font-size: 20px; }
         .nav-item.active { color: var(--accent); }
+        .nav-item:active { transform: scale(0.9); }
+
+        .fav-subtabs { display: flex; gap: 8px; padding: 12px 16px; }
+        .fav-subtab {
+            flex: 1; text-align: center; padding: 8px; border-radius: 10px;
+            background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary);
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease;
+        }
+        .fav-subtab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .fav-subtab:active { transform: scale(0.96); }
+        .history-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+            border-bottom: 1px solid var(--border); cursor: pointer;
+        }
+        .history-item img { width: 46px; height: 66px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+        .history-item-info { flex: 1; min-width: 0; }
+        .history-item-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+        .history-clear-btn { color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 8px; }
 
         .invite-modal {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -341,6 +382,7 @@
                 <span>Nilo Cinema</span>
             </div>
             <div class="header-actions">
+                <button class="history-btn" onclick="switchTabFromLink('favorites', 'history')" title="History"><i class="fas fa-history"></i></button>
                 <button class="invite-btn" onclick="showInvite()">
                     <i class="fas fa-user-plus"></i> Invite
                 </button>
@@ -402,6 +444,7 @@
             </select>
 
             <div class="player-controls-top">
+                <button class="player-btn download-btn" onclick="downloadCurrent()" title="Download"><i class="fas fa-download"></i></button>
                 <button class="player-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand"></i></button>
                 <button class="player-btn" onclick="toggleRotation()" title="Rotate"><i class="fas fa-mobile-alt"></i></button>
                 <button class="player-btn" onclick="closePlayer()"><i class="fas fa-times"></i></button>
@@ -448,15 +491,18 @@
             IMAGE_BASE_URL: 'https://image.tmdb.org/t/p/w500'
         };
 
-        let currentMedia = { id: null, type: 'movie', season: 1, episode: 1, title: '' };
+        let currentMedia = { id: null, type: 'movie', season: 1, episode: 1, title: '', poster: '' };
+        let currentPlayingUrl = '';
 
         let state = {
             currentCategory: 'all',
             currentTab: 'home',
+            favSubTab: 'favorites',
             movies: [],
             tvShows: [],
             searchResults: [],
             favorites: JSON.parse(localStorage.getItem('nilo_favorites') || '[]'),
+            history: JSON.parse(localStorage.getItem('nilo_history') || '[]'),
             userData: null,
             isRotated: false,
             registeredUsers: JSON.parse(localStorage.getItem('nilo_registeredUsers') || '[]'),
@@ -620,19 +666,99 @@
                 container.innerHTML = `<div class="movie-grid" id="seriesGrid"></div>`;
                 renderMovieGrid('seriesGrid', state.tvShows);
             } else if (state.currentTab === 'favorites') {
-                if (state.favorites.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-heart-broken"></i>
-                            <h3>No Favorites Yet</h3>
-                            <p>Tap the heart icon on any movie to save it</p>
-                        </div>
-                    `;
+                const subTabsHtml = `
+                    <div class="fav-subtabs">
+                        <div class="fav-subtab ${state.favSubTab === 'favorites' ? 'active' : ''}" onclick="switchFavSubTab('favorites')">❤️ Favorites</div>
+                        <div class="fav-subtab ${state.favSubTab === 'history' ? 'active' : ''}" onclick="switchFavSubTab('history')">🕒 History</div>
+                    </div>
+                `;
+
+                if (state.favSubTab === 'history') {
+                    if (state.history.length === 0) {
+                        container.innerHTML = subTabsHtml + `
+                            <div class="empty-state">
+                                <i class="fas fa-history"></i>
+                                <h3>No Watch History</h3>
+                                <p>Movies and episodes you watch will appear here</p>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = subTabsHtml + `
+                            <div style="display:flex;justify-content:flex-end;padding:0 16px 8px;">
+                                <span class="history-clear-btn" onclick="clearHistory()">Clear All</span>
+                            </div>
+                            <div id="historyList"></div>
+                        `;
+                        renderHistoryList();
+                    }
                 } else {
-                    container.innerHTML = `<div class="movie-grid" id="favGrid"></div>`;
-                    renderMovieGrid('favGrid', state.favorites);
+                    if (state.favorites.length === 0) {
+                        container.innerHTML = subTabsHtml + `
+                            <div class="empty-state">
+                                <i class="fas fa-heart-broken"></i>
+                                <h3>No Favorites Yet</h3>
+                                <p>Tap the heart icon on any movie to save it</p>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = subTabsHtml + `<div class="movie-grid" id="favGrid"></div>`;
+                        renderMovieGrid('favGrid', state.favorites);
+                    }
                 }
             }
+        }
+
+        function switchFavSubTab(sub) {
+            state.favSubTab = sub;
+            renderContent();
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('historyList');
+            if (!listEl) return;
+            listEl.innerHTML = state.history.map(h => {
+                const poster = h.poster ? CONFIG.IMAGE_BASE_URL + h.poster : 'https://via.placeholder.com/100x150/1a1a2e/ffffff?text=No+Image';
+                const when = timeAgo(h.watchedAt);
+                const sub = h.type === 'tv' ? `S${h.season} E${h.episode}` : 'Movie';
+                return `
+                    <div class="history-item" onclick="replayHistory('${h.type}', ${h.id}, ${h.season || 1}, ${h.episode || 1}, '${(h.title || '').replace(/'/g, "\\'")}')">
+                        <img src="${poster}" alt="${h.title}">
+                        <div class="history-item-info">
+                            <div class="history-item-title">${h.title}</div>
+                            <div class="history-item-meta">${sub} • ${when}</div>
+                        </div>
+                        <i class="fas fa-play" style="color:var(--text-muted);"></i>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function timeAgo(iso) {
+            const diffMs = Date.now() - new Date(iso).getTime();
+            const mins = Math.floor(diffMs / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return `${mins}m ago`;
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return `${hrs}h ago`;
+            const days = Math.floor(hrs / 24);
+            if (days < 7) return `${days}d ago`;
+            return new Date(iso).toLocaleDateString();
+        }
+
+        function replayHistory(type, id, season, episode, title) {
+            if (type === 'tv') {
+                currentMedia = { id: id, type: 'tv', season: season, episode: episode, title: title };
+            } else {
+                currentMedia = { id: id, type: 'movie', season: 1, episode: 1, title: title };
+            }
+            loadPlayerUrl();
+        }
+
+        function clearHistory() {
+            state.history = [];
+            localStorage.setItem('nilo_history', JSON.stringify(state.history));
+            renderContent();
+            showToast('Watch history cleared');
         }
 
         function renderMovieGrid(gridId, items) {
@@ -708,8 +834,9 @@
             else if (state.currentTab === 'favorites') navItems[3].classList.add('active');
         }
 
-        function switchTabFromLink(tab) {
+        function switchTabFromLink(tab, subTab) {
             state.currentTab = tab;
+            if (subTab) state.favSubTab = subTab;
             updateNavActive();
             renderContent();
             window.scrollTo(0, 0);
@@ -717,6 +844,7 @@
 
         function switchTab(tab) {
             state.currentTab = tab;
+            if (tab === 'favorites') state.favSubTab = 'favorites';
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             event.currentTarget.classList.add('active');
             renderContent();
@@ -730,11 +858,15 @@
             if (type === 'tv') {
                 showSeriesDetails(details);
             } else {
-                playMovie(id, details.title);
+                playMovie(id, details.title, details.poster_path);
             }
         }
 
+        let currentSeriesPoster = '';
+        let currentSeriesTitle = '';
         async function showSeriesDetails(details) {
+            currentSeriesPoster = details.poster_path || '';
+            currentSeriesTitle = details.name || '';
             const modal = document.getElementById('detailsModal');
             document.getElementById('detailsTitle').textContent = details.name;
             document.getElementById('detailsDesc').textContent = details.overview || 'No description available.';
@@ -788,14 +920,14 @@
             document.body.style.overflow = '';
         }
 
-        function playMovie(id, title) {
-            currentMedia = { id: id, type: 'movie', season: 1, episode: 1, title: title };
+        function playMovie(id, title, poster) {
+            currentMedia = { id: id, type: 'movie', season: 1, episode: 1, title: title, poster: poster || '' };
             loadPlayerUrl();
         }
 
         function playEpisode(tvId, season, episode) {
             closeDetailsModal();
-            currentMedia = { id: tvId, type: 'tv', season: season, episode: episode, title: `Season ${season} Episode ${episode}` };
+            currentMedia = { id: tvId, type: 'tv', season: season, episode: episode, title: `Season ${season} Episode ${episode}`, poster: currentSeriesPoster, seriesTitle: currentSeriesTitle };
             loadPlayerUrl();
         }
 
@@ -828,6 +960,7 @@
             const modal = document.getElementById('playerModal');
             const frame = document.getElementById('videoFrame');
             document.getElementById('playerTitle').textContent = currentMedia.title;
+            currentPlayingUrl = url;
 
             // ማስታወሻ: MultiEmbed/VidSrc.su/VidSrc.cc/VidSrc.me ሁሉም sandbox
             // ካገኙ ራሳቸውን ስለሚያግዱ (anti-sandbox detection አላቸው)፣ በ HTML
@@ -845,6 +978,38 @@
 
             state.totalPlays++;
             localStorage.setItem('nilo_totalPlays', state.totalPlays);
+            addToHistory();
+        }
+
+        function addToHistory() {
+            const displayTitle = (currentMedia.type === 'tv' && currentMedia.seriesTitle)
+                ? `${currentMedia.seriesTitle} - S${currentMedia.season}E${currentMedia.episode}`
+                : currentMedia.title;
+
+            const entry = {
+                id: currentMedia.id,
+                type: currentMedia.type,
+                title: displayTitle,
+                season: currentMedia.season,
+                episode: currentMedia.episode,
+                poster: currentMedia.poster,
+                watchedAt: new Date().toISOString()
+            };
+
+            // Duplicate (ተመሳሳይ id+season+episode) ካለ አውጥተን ወደ ላይ እናወጣለን
+            state.history = state.history.filter(h => !(h.id === entry.id && h.type === entry.type && h.season === entry.season && h.episode === entry.episode));
+            state.history.unshift(entry);
+            if (state.history.length > 50) state.history = state.history.slice(0, 50);
+            localStorage.setItem('nilo_history', JSON.stringify(state.history));
+        }
+
+        function downloadCurrent() {
+            if (!currentPlayingUrl) {
+                showToast('⚠️ No video is playing');
+                return;
+            }
+            window.open(currentPlayingUrl, '_blank');
+            showToast('📥 Source opened in new tab - use browser\'s save/download option');
         }
 
         function hideTapOverlay() {
