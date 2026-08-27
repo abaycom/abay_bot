@@ -226,14 +226,6 @@
             width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 12px; margin-bottom: 16px;
         }
         .details-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
-
-        .anime-meta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
-        .anime-meta-chip {
-            background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
-            padding: 6px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 600;
-        }
-        .anime-trailer-wrap { width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: #000; }
-        .anime-trailer-wrap iframe { width: 100%; height: 100%; border: none; }
         
         .season-tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
         .season-tab {
@@ -334,7 +326,15 @@
         }
         .invite-link-box input { flex: 1; background: none; border: none; color: var(--text-primary); font-size: 13px; outline: none; font-family: 'Inter', sans-serif; }
         .copy-btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600; }
-        .share-btn { width: 100%; background: #0088cc; color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .share-btn { width: 100%; background: #0088cc; color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.12s ease; }
+        .share-btn:active { transform: scale(0.97); }
+        .group-btn-row { display: flex; gap: 10px; margin-top: 10px; }
+        .group-add-btn {
+            flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);
+            padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform 0.12s ease;
+        }
+        .group-add-btn:active { transform: scale(0.96); background: var(--bg-card-hover); }
         .close-invite { margin-top: 12px; background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; font-weight: 500; }
 
         .toast {
@@ -429,23 +429,6 @@
         </div>
     </div>
 
-    <div class="details-modal" id="animeDetailsModal">
-        <div class="details-header">
-            <div class="details-title" id="animeDetailsTitle">Anime Title</div>
-            <button class="player-btn" onclick="closeAnimeDetailsModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="details-body">
-            <img class="details-banner" id="animeDetailsBanner" src="" alt="Banner">
-            <div class="anime-meta-row" id="animeMetaRow"></div>
-            <p class="details-desc" id="animeDetailsDesc">Synopsis...</p>
-            <div class="anime-trailer-wrap" id="animeTrailerWrap" style="display:none;">
-                <iframe id="animeTrailerFrame" allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
-            </div>
-        </div>
-    </div>
-
     <div class="player-modal" id="playerModal">
         <div class="player-header">
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
@@ -481,6 +464,10 @@
                 <button class="copy-btn" onclick="copyInvite()">Copy</button>
             </div>
             <button class="share-btn" onclick="shareInvite()"><i class="fab fa-telegram"></i> Share on Telegram</button>
+            <div class="group-btn-row">
+                <button class="group-add-btn" onclick="addToGroup()"><i class="fas fa-users"></i> Add to Group</button>
+                <button class="group-add-btn" onclick="addToChannel()"><i class="fas fa-bullhorn"></i> Add to Channel</button>
+            </div>
             <button class="close-invite" onclick="hideInvite()">Close</button>
         </div>
     </div>
@@ -491,7 +478,6 @@
         <div class="nav-item active" onclick="switchTab('home')"><i class="fas fa-home"></i><span>Home</span></div>
         <div class="nav-item" onclick="switchTab('movies')"><i class="fas fa-film"></i><span>Movies</span></div>
         <div class="nav-item" onclick="switchTab('series')"><i class="fas fa-tv"></i><span>Series</span></div>
-        <div class="nav-item" onclick="switchTab('anime')"><i class="fas fa-dragon"></i><span>Anime</span></div>
         <div class="nav-item" onclick="switchTab('favorites')"><i class="fas fa-heart"></i><span>My List</span></div>
     </nav>
 
@@ -511,8 +497,6 @@
             favSubTab: 'favorites',
             movies: [],
             tvShows: [],
-            animeList: [],
-            animeAiring: [],
             searchResults: [],
             favorites: JSON.parse(localStorage.getItem('nilo_favorites') || '[]'),
             history: JSON.parse(localStorage.getItem('nilo_history') || '[]'),
@@ -599,37 +583,6 @@
             document.getElementById('loadingScreen').classList.add('hidden');
         }
 
-        const JIKAN_BASE_URL = 'https://api.jikan.moe/v4';
-        async function fetchFromJikan(endpoint) {
-            try {
-                const response = await fetch(`${JIKAN_BASE_URL}${endpoint}`);
-                if (!response.ok) throw new Error('Jikan API Error');
-                return await response.json();
-            } catch (error) {
-                console.error('Jikan Error:', error);
-                return null;
-            }
-        }
-
-        let animeLoaded = false;
-        async function loadAnime() {
-            if (animeLoaded) return;
-            animeLoaded = true;
-            const topData = await fetchFromJikan('/top/anime?filter=bypopularity&limit=20');
-            if (topData && topData.data) {
-                state.animeList = topData.data;
-            }
-            renderContent();
-
-            // Jikan rate limit (≈3 req/sec) ስለሆነ በትንሽ delay ተከታዩን እናመጣለን
-            await new Promise(r => setTimeout(r, 500));
-            const airingData = await fetchFromJikan('/seasons/now?limit=16');
-            if (airingData && airingData.data) {
-                state.animeAiring = airingData.data;
-                renderContent();
-            }
-        }
-
         let searchTimeout;
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
@@ -676,7 +629,9 @@
             }
 
             if (state.currentTab === 'home') {
+                const hasHistory = state.history && state.history.length > 0;
                 container.innerHTML = `
+                    ${hasHistory ? `<div class="section-title"><h2>▶️ Continue Watching</h2><a onclick="switchTabFromLink('favorites', 'history')">See All</a></div><div id="continueWatchingList"></div>` : ''}
                     <div class="section-title"><h2>📺 TV Shows</h2><a onclick="switchTabFromLink('series')">See All</a></div>
                     <div class="movie-grid" id="homeTvShows"></div>
                     <div class="section-title"><h2>👻 Horror Movies</h2></div>
@@ -692,6 +647,7 @@
                     <div class="section-title"><h2>💖 Romantic</h2></div>
                     <div class="movie-grid" id="homeRomantic"></div>
                 `;
+                if (hasHistory) renderContinueWatching();
                 renderMovieGrid('homeTvShows', state.tvShows.slice(0, 4));
                 renderMovieGrid('homeHorror', state.movies.filter(m => m.categories?.includes('horror')).slice(0, 4));
                 renderMovieGrid('homeAction', state.movies.filter(m => m.categories?.includes('action')).slice(0, 4));
@@ -709,25 +665,6 @@
             } else if (state.currentTab === 'series') {
                 container.innerHTML = `<div class="movie-grid" id="seriesGrid"></div>`;
                 renderMovieGrid('seriesGrid', state.tvShows);
-            } else if (state.currentTab === 'anime') {
-                if (state.animeList.length === 0 && (!state.animeAiring || state.animeAiring.length === 0)) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-dragon"></i>
-                            <h3>Loading Anime...</h3>
-                            <p>እባክዎ ትንሽ ይጠብቁ</p>
-                        </div>
-                    `;
-                } else {
-                    let html = '';
-                    if (state.animeAiring && state.animeAiring.length > 0) {
-                        html += `<div class="section-title"><h2>📡 Currently Airing</h2></div><div class="movie-grid" id="animeAiringGrid"></div>`;
-                    }
-                    html += `<div class="section-title"><h2>🏆 Top Anime</h2></div><div class="movie-grid" id="animeTopGrid"></div>`;
-                    container.innerHTML = html;
-                    if (state.animeAiring && state.animeAiring.length > 0) renderAnimeGrid('animeAiringGrid', state.animeAiring);
-                    renderAnimeGrid('animeTopGrid', state.animeList);
-                }
             } else if (state.currentTab === 'favorites') {
                 const subTabsHtml = `
                     <div class="fav-subtabs">
@@ -774,6 +711,27 @@
         function switchFavSubTab(sub) {
             state.favSubTab = sub;
             renderContent();
+        }
+
+        function renderContinueWatching() {
+            const listEl = document.getElementById('continueWatchingList');
+            if (!listEl) return;
+            const items = state.history.slice(0, 6);
+            listEl.innerHTML = items.map(h => {
+                const poster = h.poster ? CONFIG.IMAGE_BASE_URL + h.poster : 'https://via.placeholder.com/100x150/1a1a2e/ffffff?text=No+Image';
+                const when = timeAgo(h.watchedAt);
+                const sub = h.type === 'tv' ? `S${h.season} E${h.episode}` : 'Movie';
+                return `
+                    <div class="history-item" onclick="replayHistory('${h.type}', ${h.id}, ${h.season || 1}, ${h.episode || 1}, '${(h.title || '').replace(/'/g, "\\'")}')">
+                        <img src="${poster}" alt="${h.title}">
+                        <div class="history-item-info">
+                            <div class="history-item-title">${h.title}</div>
+                            <div class="history-item-meta">${sub} • ${when}</div>
+                        </div>
+                        <i class="fas fa-play" style="color:var(--accent);"></i>
+                    </div>
+                `;
+            }).join('');
         }
 
         function renderHistoryList() {
@@ -867,72 +825,6 @@
             }).join('');
         }
 
-        function renderAnimeGrid(gridId, items) {
-            const grid = document.getElementById(gridId);
-            if (!grid) return;
-            if (!items || items.length === 0) {
-                grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-dragon"></i><h3>No anime found</h3></div>`;
-                return;
-            }
-
-            grid.innerHTML = items.map(item => {
-                const poster = item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || 'https://via.placeholder.com/300x450/1a1a2e/ffffff?text=No+Image';
-                const title = item.title_english || item.title || 'Unknown';
-                const year = item.aired?.prop?.from?.year || item.year || '';
-                const rating = item.score ? item.score.toFixed(1) : 'N/A';
-
-                return `
-                    <div class="movie-card" onclick="showAnimeDetails(${item.mal_id})">
-                        <img class="movie-poster" src="${poster}" alt="${title}" loading="lazy">
-                        <div class="movie-info">
-                            <div class="movie-title">${title}</div>
-                            <div class="movie-meta">
-                                <span class="rating"><i class="fas fa-star"></i> ${rating}</span>
-                                <span>${year}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function showAnimeDetails(malId) {
-            const res = await fetchFromJikan(`/anime/${malId}/full`);
-            if (!res || !res.data) { showToast('⚠️ Could not load anime details'); return; }
-            const a = res.data;
-
-            document.getElementById('animeDetailsTitle').textContent = a.title_english || a.title;
-            document.getElementById('animeDetailsBanner').src = a.images?.jpg?.large_image_url || '';
-            document.getElementById('animeDetailsDesc').textContent = a.synopsis || 'No synopsis available.';
-
-            const metaRow = document.getElementById('animeMetaRow');
-            const chips = [];
-            if (a.score) chips.push(`⭐ ${a.score}`);
-            if (a.episodes) chips.push(`${a.episodes} Episodes`);
-            if (a.status) chips.push(a.status);
-            if (a.genres && a.genres.length) chips.push(a.genres.slice(0, 3).map(g => g.name).join(', '));
-            metaRow.innerHTML = chips.map(c => `<span class="anime-meta-chip">${c}</span>`).join('');
-
-            const trailerWrap = document.getElementById('animeTrailerWrap');
-            const trailerFrame = document.getElementById('animeTrailerFrame');
-            if (a.trailer && a.trailer.embed_url) {
-                trailerFrame.src = a.trailer.embed_url;
-                trailerWrap.style.display = 'block';
-            } else {
-                trailerFrame.src = '';
-                trailerWrap.style.display = 'none';
-            }
-
-            document.getElementById('animeDetailsModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeAnimeDetailsModal() {
-            document.getElementById('animeDetailsModal').classList.remove('active');
-            document.getElementById('animeTrailerFrame').src = '';
-            document.body.style.overflow = '';
-        }
-
         document.querySelectorAll('.category-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
@@ -960,8 +852,7 @@
             if (state.currentTab === 'home') navItems[0].classList.add('active');
             else if (state.currentTab === 'movies') navItems[1].classList.add('active');
             else if (state.currentTab === 'series') navItems[2].classList.add('active');
-            else if (state.currentTab === 'anime') navItems[3].classList.add('active');
-            else if (state.currentTab === 'favorites') navItems[4].classList.add('active');
+            else if (state.currentTab === 'favorites') navItems[3].classList.add('active');
         }
 
         function switchTabFromLink(tab, subTab) {
@@ -979,7 +870,6 @@
             event.currentTarget.classList.add('active');
             renderContent();
             window.scrollTo(0, 0);
-            if (tab === 'anime') loadAnime();
         }
 
         async function handleMediaClick(id, type) {
@@ -1253,6 +1143,26 @@
             const text = '🎬 Nilo Cinema - Watch Movies & Series for Free!';
             if (tg.openParameter || tg.openTelegramLink) {
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+            }
+        }
+
+        function addToGroup() {
+            const botUsername = tg.initDataUnsafe?.bot?.username || 'nilo_cinema_bot';
+            const url = `https://t.me/${botUsername}?startgroup=true`;
+            if (tg.openTelegramLink) {
+                tg.openTelegramLink(url);
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+
+        function addToChannel() {
+            const botUsername = tg.initDataUnsafe?.bot?.username || 'nilo_cinema_bot';
+            const url = `https://t.me/${botUsername}?startchannel=true`;
+            if (tg.openTelegramLink) {
+                tg.openTelegramLink(url);
+            } else {
+                window.open(url, '_blank');
             }
         }
 
