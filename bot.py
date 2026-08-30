@@ -18,7 +18,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 # ==================== CONFIGURATION ====================
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-telegram-api.up.railway.app/")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-production-edcca.up.railway.app/")
 PORT = int(os.getenv("PORT", 8080))
 MONGO_URI = os.getenv("MONGO_URI", "")          # e.g. mongodb+srv://user:pass@cluster.mongodb.net
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "nilo_cinema")
