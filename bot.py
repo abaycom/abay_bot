@@ -174,27 +174,27 @@ async def total_referrals() -> int:
 
 # ==================== MULTI-MEDIA MESSAGE COPYING ====================
 
-async def copy_message_to_chat(source: types.Message, chat_id: int, prefix: str = ""):
+async def copy_message_to_chat(source: types.Message, chat_id: int, prefix: str = "", reply_markup=None):
     """Sends whatever the admin sent (text, photo, video, document, audio, voice, animation)
-    to a single chat, preserving the media and adding an optional caption prefix."""
+    to a single chat, preserving the media and adding an optional caption prefix and button(s)."""
     caption = ((source.caption or "") if source.caption else (source.text or ""))
     full_caption = f"{prefix}{caption}" if prefix else caption
 
     if source.photo:
-        await bot.send_photo(chat_id, photo=source.photo[-1].file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_photo(chat_id, photo=source.photo[-1].file_id, caption=full_caption or None, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     elif source.video:
-        await bot.send_video(chat_id, video=source.video.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_video(chat_id, video=source.video.file_id, caption=full_caption or None, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     elif source.animation:
-        await bot.send_animation(chat_id, animation=source.animation.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_animation(chat_id, animation=source.animation.file_id, caption=full_caption or None, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     elif source.document:
-        await bot.send_document(chat_id, document=source.document.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_document(chat_id, document=source.document.file_id, caption=full_caption or None, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     elif source.audio:
-        await bot.send_audio(chat_id, audio=source.audio.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_audio(chat_id, audio=source.audio.file_id, caption=full_caption or None, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     elif source.voice:
-        await bot.send_voice(chat_id, voice=source.voice.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_voice(chat_id, voice=source.voice.file_id, caption=full_caption or None, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
     else:
         text = full_caption or "(empty message)"
-        await bot.send_message(chat_id, text, parse_mode=ParseMode.MARKDOWN)
+        await bot.send_message(chat_id, text, reply_markup=reply_markup, parse_mode=ParseMode.MARKDOWN)
 
 
 def has_sendable_content(message: types.Message) -> bool:
@@ -281,6 +281,8 @@ class AdminStates(StatesGroup):
     waiting_force_join_channel = State()
     waiting_youtube_url = State()
     waiting_tiktok_url = State()
+    waiting_button_choice = State()      # ማስታወቂያ ከላከ በኋላ Play/link ቁልፍ ይጠይቃል
+    waiting_button_url = State()         # custom URL/movie-ID ግቤት
 
 
 # ==================== WEB SERVER (SERVES INDEX.HTML) ====================
@@ -602,23 +604,98 @@ async def process_broadcast(message: types.Message, state: FSMContext):
         await state.clear()
         return
 
-    await state.clear()
     if not has_sendable_content(message):
+        await state.clear()
         await message.answer("❌ Empty message, broadcast cancelled.")
         return
 
+    await state.update_data(pending_message_obj=message, target="users")
+    await state.set_state(AdminStates.waiting_button_choice)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="▶️ Add \"Open App\" button", callback_data="btn_choice_app")],
+        [InlineKeyboardButton(text="🔗 Add custom link button", callback_data="btn_choice_custom")],
+        [InlineKeyboardButton(text="🚫 No button", callback_data="btn_choice_none")],
+    ])
+    await message.answer("Add a button under this announcement?", reply_markup=kb)
+
+
+@dp.callback_query(F.data.startswith("btn_choice_"))
+async def callback_button_choice(callback: types.CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+
+    choice = callback.data.replace("btn_choice_", "")
+
+    if choice == "custom":
+        await state.set_state(AdminStates.waiting_button_url)
+        await callback.message.edit_text(
+            "🔗 Send the button in this format:\n\n`Button Text | https://example.com`\n\n"
+            "Example:\n`▶️ Watch Now | https://t.me/nilo_cinema_bot`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        await callback.answer()
+        return
+
+    reply_markup = None
+    if choice == "app":
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎬 Open Nilo Cinema", web_app=WebAppInfo(url=WEBAPP_URL))]
+        ])
+
+    await callback.answer()
+    await finish_broadcast_or_post(callback.message, state, reply_markup)
+
+
+@dp.message(AdminStates.waiting_button_url)
+async def process_button_url(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        return
+
+    if not message.text or "|" not in message.text:
+        await message.answer("❌ Wrong format. Use: `Button Text | https://example.com`", parse_mode=ParseMode.MARKDOWN)
+        return
+
+    label, url = message.text.split("|", 1)
+    label, url = label.strip(), url.strip()
+    if not (url.startswith("http://") or url.startswith("https://")):
+        await message.answer("❌ The link must start with http:// or https://")
+        return
+
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=label, url=url)]])
+    await finish_broadcast_or_post(message, state, reply_markup)
+
+
+async def finish_broadcast_or_post(reply_target: types.Message, state: FSMContext, reply_markup):
+    data = await state.get_data()
+    await state.clear()
+
+    original_message: types.Message = data.get("pending_message_obj")
+    target = data.get("target", "users")
+
+    if original_message is None:
+        await reply_target.answer("❌ Something went wrong — please try again.")
+        return
+
+    if target == "users":
+        cursor = users_col.find({}, {"_id": 1})
+        prefix = "📢 *Announcement*\n\n"
+    else:
+        cursor = groups_col.find({}, {"_id": 1})
+        prefix = ""
+
     sent, failed = 0, 0
-    cursor = users_col.find({}, {"_id": 1})
     async for u in cursor:
         try:
-            await copy_message_to_chat(message, u["_id"], prefix="📢 *Announcement*\n\n")
+            await copy_message_to_chat(original_message, u["_id"], prefix=prefix, reply_markup=reply_markup)
             sent += 1
             await asyncio.sleep(0.05)
         except Exception as e:
             failed += 1
-            logger.error(f"Broadcast failed for {u['_id']}: {e}")
+            logger.error(f"Send failed for {u['_id']}: {e}")
 
-    await message.answer(f"✅ Sent: {sent}\n❌ Failed: {failed}")
+    await reply_target.answer(f"✅ Sent: {sent}\n❌ Failed: {failed}")
 
 
 @dp.callback_query(F.data == "admin_adcfg")
@@ -677,24 +754,20 @@ async def process_group_post(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id):
         await state.clear()
         return
-    await state.clear()
 
     if not has_sendable_content(message):
+        await state.clear()
         await message.answer("❌ Empty message, post cancelled.")
         return
 
-    sent, failed = 0, 0
-    cursor = groups_col.find({}, {"_id": 1})
-    async for g in cursor:
-        try:
-            await copy_message_to_chat(message, g["_id"])
-            sent += 1
-            await asyncio.sleep(0.05)
-        except Exception as e:
-            failed += 1
-            logger.error(f"Group post failed for {g['_id']}: {e}")
-
-    await message.answer(f"✅ Posted to: {sent}\n❌ Failed: {failed}")
+    await state.update_data(pending_message_obj=message, target="groups")
+    await state.set_state(AdminStates.waiting_button_choice)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="▶️ Add \"Open App\" button", callback_data="btn_choice_app")],
+        [InlineKeyboardButton(text="🔗 Add custom link button", callback_data="btn_choice_custom")],
+        [InlineKeyboardButton(text="🚫 No button", callback_data="btn_choice_none")],
+    ])
+    await message.answer("Add a button under this post?", reply_markup=kb)
 
 
 # ==================== FORCE-JOIN ADMIN CONTROLS ====================
