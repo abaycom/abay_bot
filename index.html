@@ -254,7 +254,8 @@
         .player-modal.active { display: flex; }
         .player-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 16px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px;
+            padding: calc(10px + var(--tg-safe-top, 0px)) 16px 10px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px;
+            min-height: 36px;
         }
         .player-controls-top { display: flex; gap: 10px; align-items: center; }
         
@@ -442,10 +443,10 @@
             <div class="player-title" id="playerTitle" style="font-size:13px;font-weight:600;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Movie Title</div>
             
             <select class="server-selector" id="serverSelector" onchange="changeServer()">
-                <option value="vidsrc_me" selected>VidSrc.me</option>
-                <option value="multiembed">MultiEmbed</option>
-                <option value="vidsrc_su">VidSrc.su</option>
-                <option value="vidsrc_cc">VidSrc.cc</option>
+                <option value="vidsrc_me" selected>Server 1</option>
+                <option value="multiembed">Server 2</option>
+                <option value="vidsrc_su">Server 3</option>
+                <option value="vidsrc_cc">Server 4</option>
             </select>
 
             <div class="player-controls-top">
@@ -542,13 +543,6 @@
                 ? tg.contentSafeAreaInset.top
                 : (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
             document.documentElement.style.setProperty('--tg-safe-top', inset + 'px');
-            // Header ትክክለኛ ቁመቱን ካሰላ በኋላ categories bar ከስሩ በትክክል እንዲቀመጥ እናደርጋለን
-            requestAnimationFrame(() => {
-                const headerEl = document.querySelector('.header');
-                if (headerEl) {
-                    document.documentElement.style.setProperty('--content-top-offset', headerEl.offsetHeight + 'px');
-                }
-            });
         }
         applySafeArea();
         if (tg.onEvent) {
@@ -557,6 +551,22 @@
             tg.onEvent('contentSafeAreaChanged', applySafeArea);
         }
         window.addEventListener('resize', applySafeArea);
+
+        // Header ትክክለኛ ቁመቱን ሁልጊዜ (safe-area ሲቀየር፣ font ሲጫን፣ ስክሪን ሲሽከረከር)
+        // በራሱ እየተከታተለ categories bar ከስሩ በትክክል እንዲቀመጥ ResizeObserver እንጠቀማለን -
+        // ይህ ከ timing-based መለኪያ ይልቅ ሁልጊዜ ትክክለኛ ውጤት ይሰጣል።
+        const headerElForObserve = document.querySelector('.header');
+        if (headerElForObserve && window.ResizeObserver) {
+            const headerResizeObserver = new ResizeObserver(entries => {
+                for (const entry of entries) {
+                    document.documentElement.style.setProperty('--content-top-offset', entry.contentRect.height + 'px');
+                }
+            });
+            headerResizeObserver.observe(headerElForObserve);
+        } else if (headerElForObserve) {
+            // ResizeObserver ካልተደገፈ fallback
+            document.documentElement.style.setProperty('--content-top-offset', headerElForObserve.offsetHeight + 'px');
+        }
 
         function initUser() {
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
