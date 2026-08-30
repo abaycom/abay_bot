@@ -77,7 +77,7 @@
             background: rgba(10, 10, 15, 0.95);
             backdrop-filter: blur(20px);
             z-index: 100;
-            padding: calc(12px + var(--tg-safe-top, 0px)) 16px 12px;
+            padding: calc(12px + max(var(--tg-safe-top, 0px), env(safe-area-inset-top, 0px))) 16px 12px;
             border-bottom: 1px solid var(--border);
             transition: padding-top 0.2s ease;
         }
@@ -254,7 +254,7 @@
         .player-modal.active { display: flex; }
         .player-header {
             display: flex; align-items: center; justify-content: space-between;
-            padding: calc(10px + var(--tg-safe-top, 0px)) 16px 10px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px;
+            padding: calc(18px + max(var(--tg-safe-top, 0px), env(safe-area-inset-top, 0px))) 16px 10px; background: rgba(0,0,0,0.9); z-index: 10; flex-wrap: wrap; gap: 8px;
             min-height: 36px;
         }
         .player-controls-top { display: flex; gap: 10px; align-items: center; }
@@ -276,11 +276,13 @@
         .video-wrapper iframe { width: 100%; height: 100%; border: none; }
         .player-modal.fs-header-hidden .player-header { display: none; }
         .fs-exit-btn {
-            position: fixed; top: 10px; right: 10px; z-index: 50;
-            width: 34px; height: 34px; border-radius: 50%;
-            background: rgba(0,0,0,0.5); border: none; color: white;
-            display: none; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;
+            position: fixed; top: 14px; right: 14px; z-index: 9999;
+            width: 42px; height: 42px; border-radius: 50%;
+            background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.3); color: white;
+            display: none; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
+        .fs-exit-btn:active { transform: scale(0.9); background: var(--accent); }
         .player-modal.fs-header-hidden .fs-exit-btn { display: flex; }
 
         .bottom-nav {
@@ -557,14 +559,13 @@
         // ይህ ከ timing-based መለኪያ ይልቅ ሁልጊዜ ትክክለኛ ውጤት ይሰጣል።
         const headerElForObserve = document.querySelector('.header');
         if (headerElForObserve && window.ResizeObserver) {
-            const headerResizeObserver = new ResizeObserver(entries => {
-                for (const entry of entries) {
-                    document.documentElement.style.setProperty('--content-top-offset', entry.contentRect.height + 'px');
-                }
+            const headerResizeObserver = new ResizeObserver(() => {
+                // entry.contentRect padding/border አያካትትም - ስለዚህ ትክክለኛውን
+                // ሙሉ ቁመት (padding/border ጨምሮ) በቀጥታ ከ offsetHeight እናገኛለን
+                document.documentElement.style.setProperty('--content-top-offset', headerElForObserve.offsetHeight + 'px');
             });
             headerResizeObserver.observe(headerElForObserve);
         } else if (headerElForObserve) {
-            // ResizeObserver ካልተደገፈ fallback
             document.documentElement.style.setProperty('--content-top-offset', headerElForObserve.offsetHeight + 'px');
         }
 
@@ -1187,9 +1188,10 @@
                 wrapper.style.top = '50%'; wrapper.style.left = '50%';
                 wrapper.style.marginLeft = '-50vh'; wrapper.style.marginTop = '-50vw';
 
-                // ወደ ትክክለኛ Fullscreen ገብተን ከላይ ያሉትን ቁልፎች እንደብቃለን
+                // ከላይ ያሉትን ቁልፎች እናስቀርና ትንሽ ✕ exit ቁልፍ ብቻ እናሳያለን።
+                // ማስታወሻ: Fullscreen API በ Telegram WebView ውስጥ አስተማማኝ ስላልሆነ
+                // (ብዙ ጊዜ ዝም ብሎ ይከሽፋል) ለ rotation ብቻ አንጠቀምበትም - CSS-only ነው።
                 modal.classList.add('fs-header-hidden');
-                modal.requestFullscreen().catch(() => {});
                 if (screen.orientation && screen.orientation.lock) {
                     screen.orientation.lock('landscape').catch(() => {});
                 }
@@ -1200,7 +1202,6 @@
                 wrapper.style.marginLeft = ''; wrapper.style.marginTop = '';
 
                 modal.classList.remove('fs-header-hidden');
-                if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
                 if (screen.orientation && screen.orientation.unlock) {
                     screen.orientation.unlock();
                 }
@@ -1216,13 +1217,9 @@
             }
         }
 
-        // Fullscreen ውጪ ተጠቃሚው (ለምሳሌ system back key/gesture) ቢወጣ
-        // header/rotation state ወደ መደበኛው ይመለስ
-        document.addEventListener('fullscreenchange', function () {
-            if (!document.fullscreenElement && state.isRotated) {
-                toggleRotation();
-            }
-        });
+        // Fullscreen ውጪ ተጠቃሚው (ለምሳሌ system back key/gesture) ቢወጣ በራሱ ይመለሳል -
+        // ይህ የ "Fullscreen" ቁልፍ (toggleFullscreen) ብቻ ይመለከታል፣ rotation ግን
+        // ከ Fullscreen API ነፃ (CSS-only) ስለሆነ እዚህ አይነካም።
 
         function toggleFavorite(id) {
             const index = state.favorites.findIndex(f => f.id === id);
