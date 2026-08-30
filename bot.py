@@ -4,13 +4,14 @@ import json
 import os
 from datetime import datetime, timedelta, timezone
 
+import aiohttp
 from aiohttp import web
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, MenuButtonWebApp
-from aiogram.enums import ParseMode
+from aiogram.enums import ParseMode, ChatMemberStatus, ChatType
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -21,6 +22,9 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-telegram-api.up.railway.app/")
 PORT = int(os.getenv("PORT", 8080))
 MONGO_URI = os.getenv("MONGO_URI", "")          # e.g. mongodb+srv://user:pass@cluster.mongodb.net
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "nilo_cinema")
+TMDB_API_KEY = os.getenv("TMDB_API_KEY", "")
+AUTO_POST_INTERVAL_HOURS = float(os.getenv("AUTO_POST_INTERVAL_HOURS", "6"))
+AUTO_POST_MAX_PER_RUN = int(os.getenv("AUTO_POST_MAX_PER_RUN", "3"))
 
 # Comma-separated admin IDs in env, e.g. "5049565154,123456789"
 ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "5049565154").split(",") if x.strip()]
@@ -37,6 +41,8 @@ mongo_client = AsyncIOMotorClient(MONGO_URI)
 db = mongo_client[MONGO_DB_NAME]
 users_col = db["users"]
 settings_col = db["settings"]
+groups_col = db["groups"]            # groups/channels the bot has been added to
+posted_movies_col = db["posted_movies"]  # de-dup log for auto-posted movies
 
 DEFAULT_AD_CONFIG = {
     "video_ad_enabled": False,
@@ -46,6 +52,11 @@ DEFAULT_AD_CONFIG = {
     "video_ad_text": "Watch New Movies for Free!",
     "banner_ad_text": "New Releases Every Day!",
     "bot_ad_text": "Check out the latest movies on Nilo Cinema! Watch for free now!",
+}
+
+DEFAULT_FORCE_JOIN = {
+    "enabled": False,
+    "channel_username": "",   # e.g. "nilo_cinema_channel" (no @)
 }
 
 
@@ -61,7 +72,10 @@ async def ensure_settings():
             "total_plays": 0,
             "total_ad_views": 0,
             "ad_config": DEFAULT_AD_CONFIG,
+            "force_join": DEFAULT_FORCE_JOIN,
         })
+    elif "force_join" not in doc:
+        await settings_col.update_one({"_id": "global"}, {"$set": {"force_join": DEFAULT_FORCE_JOIN}})
 
 
 async def get_settings():
@@ -156,6 +170,63 @@ async def total_referrals() -> int:
     return result[0]["total"] if result else 0
 
 
+# ==================== GROUPS / CHANNELS ====================
+
+async def upsert_group(chat: types.Chat):
+    await groups_col.update_one(
+        {"_id": chat.id},
+        {"$set": {
+            "type": chat.type,          # "group" | "supergroup" | "channel"
+            "title": chat.title,
+            "username": chat.username,
+            "updated_at": now_iso(),
+        }, "$setOnInsert": {"added_at": now_iso()}},
+        upsert=True,
+    )
+
+
+async def remove_group(chat_id: int):
+    await groups_col.delete_one({"_id": chat_id})
+
+
+async def count_groups() -> int:
+    return await groups_col.count_documents({})
+
+
+# ==================== FORCE-JOIN CHANNEL ====================
+
+async def get_force_join() -> dict:
+    settings = await get_settings()
+    return settings.get("force_join", DEFAULT_FORCE_JOIN)
+
+
+async def update_force_join(patch: dict):
+    await settings_col.update_one(
+        {"_id": "global"},
+        {"$set": {f"force_join.{k}": v for k, v in patch.items()}},
+        upsert=True,
+    )
+
+
+async def user_has_joined_channel(user_id: int, channel_username: str) -> bool:
+    if not channel_username:
+        return True
+    try:
+        member = await bot.get_chat_member(f"@{channel_username}", user_id)
+        return member.status not in (ChatMemberStatus.LEFT, ChatMemberStatus.KICKED)
+    except Exception as e:
+        logger.error(f"Force-join check failed: {e}")
+        # ቻናሉ ላይ bot admin ካልሆነ ወይም ስህተት ካለ፣ ተጠቃሚውን አናግድም
+        return True
+
+
+def force_join_keyboard(channel_username: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📢 Join Channel", url=f"https://t.me/{channel_username}")],
+        [InlineKeyboardButton(text="✅ I've Joined", callback_data="check_join")],
+    ])
+
+
 # ==================== INITIALIZE BOT ====================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -163,6 +234,8 @@ dp = Dispatcher(storage=MemoryStorage())
 
 class AdminStates(StatesGroup):
     waiting_broadcast = State()
+    waiting_group_post = State()
+    waiting_force_join_channel = State()
 
 
 # ==================== WEB SERVER (SERVES INDEX.HTML) ====================
@@ -206,9 +279,20 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📊 Stats", callback_data="admin_stats"),
          InlineKeyboardButton(text="👥 Users", callback_data="admin_users")],
-        [InlineKeyboardButton(text="📢 Broadcast", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="📢 Broadcast to Users", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="📣 Post to Groups/Channels", callback_data="admin_group_post")],
         [InlineKeyboardButton(text="⚙️ Ad Config", callback_data="admin_adcfg")],
+        [InlineKeyboardButton(text="🔒 Force Join Channel", callback_data="admin_forcejoin")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")],
+    ])
+
+
+def force_join_admin_keyboard(fj: dict) -> InlineKeyboardMarkup:
+    status = "✅ ON" if fj.get("enabled") else "❌ OFF"
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"Force Join: {status}", callback_data="forcejoin_toggle")],
+        [InlineKeyboardButton(text="✏️ Set Channel Username", callback_data="forcejoin_set")],
+        [InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")],
     ])
 
 
@@ -226,22 +310,11 @@ def ad_config_keyboard(cfg: dict) -> InlineKeyboardMarkup:
 
 # ==================== COMMANDS ====================
 
-@dp.message(CommandStart())
-async def cmd_start(message: types.Message):
-    user = message.from_user
-    user_id = user.id
-
-    args = message.text.split()
-    referrer_id = None
-    if len(args) > 1 and args[1].startswith("ref_"):
-        try:
-            referrer_id = int(args[1].replace("ref_", ""))
-        except ValueError:
-            referrer_id = None
-
+async def process_new_user_and_welcome(user: types.User, referrer_id: int | None) -> str:
+    """Registers/updates the user, notifies referrer if applicable, and returns welcome text."""
     _, is_new = await upsert_user(user, referrer_id)
 
-    if is_new and referrer_id and referrer_id != user_id:
+    if is_new and referrer_id and referrer_id != user.id:
         referrer = await users_col.find_one({"_id": referrer_id})
         if referrer:
             try:
@@ -255,9 +328,7 @@ async def cmd_start(message: types.Message):
             except Exception as e:
                 logger.error(f"Failed to notify referrer: {e}")
 
-    keyboard = admin_menu_keyboard() if is_admin(user_id) else user_menu_keyboard()
-
-    welcome_text = f"""🎬 *Welcome to Nilo Cinema!*
+    return f"""🎬 *Welcome to Nilo Cinema!*
 
 Hello {user.first_name}! 👋
 
@@ -271,7 +342,51 @@ Watch movies, TV series, and your favorites for free!
 
 👇 Tap the button below to start!"""
 
+
+@dp.message(CommandStart())
+async def cmd_start(message: types.Message):
+    user = message.from_user
+    user_id = user.id
+
+    fj = await get_force_join()
+    if fj.get("enabled") and fj.get("channel_username"):
+        joined = await user_has_joined_channel(user_id, fj["channel_username"])
+        if not joined:
+            await message.answer(
+                "🔒 *Join our channel first*\n\nTo use Nilo Cinema, please join our channel, then tap \"I've Joined\".",
+                reply_markup=force_join_keyboard(fj["channel_username"]),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+    args = message.text.split()
+    referrer_id = None
+    if len(args) > 1 and args[1].startswith("ref_"):
+        try:
+            referrer_id = int(args[1].replace("ref_", ""))
+        except ValueError:
+            referrer_id = None
+
+    welcome_text = await process_new_user_and_welcome(user, referrer_id)
+    keyboard = admin_menu_keyboard() if is_admin(user_id) else user_menu_keyboard()
     await message.answer(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+
+
+@dp.callback_query(F.data == "check_join")
+async def callback_check_join(callback: types.CallbackQuery):
+    user = callback.from_user
+    fj = await get_force_join()
+
+    if fj.get("enabled") and fj.get("channel_username"):
+        joined = await user_has_joined_channel(user.id, fj["channel_username"])
+        if not joined:
+            await callback.answer("❌ You haven't joined the channel yet.", show_alert=True)
+            return
+
+    welcome_text = await process_new_user_and_welcome(user, None)
+    keyboard = admin_menu_keyboard() if is_admin(user.id) else user_menu_keyboard()
+    await callback.message.edit_text(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+    await callback.answer("✅ Welcome!")
 
 
 @dp.callback_query(F.data == "invite")
@@ -476,6 +591,203 @@ async def callback_adcfg_toggle(callback: types.CallbackQuery):
     await callback.answer(f"{field} → {'ON' if cfg[field] else 'OFF'}")
 
 
+# ==================== GROUP/CHANNEL POSTING (admin) ====================
+
+@dp.callback_query(F.data == "admin_group_post")
+async def callback_admin_group_post(callback: types.CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+    total_groups = await count_groups()
+    await state.set_state(AdminStates.waiting_group_post)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
+    await callback.message.edit_text(
+        f"📣 *Post to Groups/Channels*\n\n"
+        f"Bot is currently added to {total_groups} group(s)/channel(s).\n\n"
+        f"Send the text (or a photo with caption) you want posted there as your next message.",
+        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+    )
+    await callback.answer()
+
+
+@dp.message(AdminStates.waiting_group_post)
+async def process_group_post(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        return
+    await state.clear()
+
+    sent, failed = 0, 0
+    cursor = groups_col.find({}, {"_id": 1})
+    async for g in cursor:
+        try:
+            if message.photo:
+                await bot.send_photo(g["_id"], photo=message.photo[-1].file_id, caption=message.caption or "", parse_mode=ParseMode.MARKDOWN)
+            else:
+                await bot.send_message(g["_id"], message.text or "", parse_mode=ParseMode.MARKDOWN)
+            sent += 1
+            await asyncio.sleep(0.05)
+        except Exception as e:
+            failed += 1
+            logger.error(f"Group post failed for {g['_id']}: {e}")
+
+    await message.answer(f"✅ Posted to: {sent}\n❌ Failed: {failed}")
+
+
+# ==================== FORCE-JOIN ADMIN CONTROLS ====================
+
+@dp.callback_query(F.data == "admin_forcejoin")
+async def callback_admin_forcejoin(callback: types.CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+    fj = await get_force_join()
+    channel_line = f"@{fj['channel_username']}" if fj.get("channel_username") else "Not set"
+    await callback.message.edit_text(
+        f"🔒 *Force Join Channel*\n\nCurrent channel: {channel_line}\n\n"
+        f"When ON, users must join this channel before using the bot.\n"
+        f"⚠️ The bot must be an *admin* in that channel to verify membership.",
+        reply_markup=force_join_admin_keyboard(fj), parse_mode=ParseMode.MARKDOWN
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "forcejoin_toggle")
+async def callback_forcejoin_toggle(callback: types.CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+    fj = await get_force_join()
+    if not fj.get("channel_username"):
+        await callback.answer("⚠️ Set a channel username first (✏️ Set Channel Username)", show_alert=True)
+        return
+    new_val = not fj.get("enabled", False)
+    await update_force_join({"enabled": new_val})
+    fj["enabled"] = new_val
+    await callback.message.edit_reply_markup(reply_markup=force_join_admin_keyboard(fj))
+    await callback.answer(f"Force Join → {'ON' if new_val else 'OFF'}")
+
+
+@dp.callback_query(F.data == "forcejoin_set")
+async def callback_forcejoin_set(callback: types.CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+    await state.set_state(AdminStates.waiting_force_join_channel)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
+    await callback.message.edit_text(
+        "✏️ Send the channel *username* (without @), e.g. `nilo_cinema_channel`.\n\n"
+        "⚠️ The bot must already be an admin of that channel.",
+        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+    )
+    await callback.answer()
+
+
+@dp.message(AdminStates.waiting_force_join_channel)
+async def process_forcejoin_channel(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        return
+    await state.clear()
+    username = (message.text or "").strip().lstrip("@")
+    if not username:
+        await message.answer("❌ Invalid username.")
+        return
+    await update_force_join({"channel_username": username})
+    await message.answer(f"✅ Force-join channel set to @{username}")
+
+
+# ==================== GROUP/CHANNEL MEMBERSHIP TRACKING ====================
+
+@dp.my_chat_member()
+async def on_bot_membership_changed(event: types.ChatMemberUpdated):
+    if event.chat.type == ChatType.PRIVATE:
+        return  # የግል chat ነው፣ group/channel አይደለም
+
+    new_status = event.new_chat_member.status
+    if new_status in (ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR):
+        await upsert_group(event.chat)
+        logger.info(f"Bot added to {event.chat.type}: {event.chat.title} ({event.chat.id})")
+    elif new_status in (ChatMemberStatus.LEFT, ChatMemberStatus.KICKED):
+        await remove_group(event.chat.id)
+        logger.info(f"Bot removed from {event.chat.type}: {event.chat.title} ({event.chat.id})")
+
+
+# ==================== AUTO-POST NEW MOVIES ====================
+
+async def fetch_now_playing_movies() -> list:
+    if not TMDB_API_KEY:
+        return []
+    url = f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}&language=en-US&page=1"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status != 200:
+                    return []
+                data = await resp.json()
+                return data.get("results", [])
+    except Exception as e:
+        logger.error(f"TMDB fetch failed: {e}")
+        return []
+
+
+async def auto_post_new_movies():
+    movies = await fetch_now_playing_movies()
+    if not movies:
+        return
+
+    groups = await groups_col.find({}, {"_id": 1}).to_list(length=None)
+    if not groups:
+        return  # ምንም group/channel ካልታከለ መልቀቅ ትርጉም የለውም
+
+    posted_count = 0
+    for movie in movies:
+        if posted_count >= AUTO_POST_MAX_PER_RUN:
+            break
+        tmdb_id = movie.get("id")
+        already = await posted_movies_col.find_one({"_id": tmdb_id})
+        if already:
+            continue
+
+        title = movie.get("title", "Unknown")
+        overview = (movie.get("overview") or "")[:200]
+        poster_path = movie.get("poster_path")
+        rating = movie.get("vote_average", 0)
+
+        caption = f"🎬 *{title}*\n\n⭐ {rating:.1f}/10\n\n{overview}{'...' if len(movie.get('overview', '')) > 200 else ''}"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="▶️ Play Now", web_app=WebAppInfo(url=f"{WEBAPP_URL}?movie={tmdb_id}"))]
+        ])
+
+        for g in groups:
+            try:
+                if poster_path:
+                    await bot.send_photo(
+                        g["_id"],
+                        photo=f"https://image.tmdb.org/t/p/w500{poster_path}",
+                        caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+                    )
+                else:
+                    await bot.send_message(g["_id"], caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Auto-post failed for group {g['_id']}: {e}")
+
+        await posted_movies_col.insert_one({"_id": tmdb_id, "title": title, "posted_at": now_iso()})
+        posted_count += 1
+
+
+async def auto_post_loop():
+    # ቦት ገና ሲነሳ ወዲያውኑ ላለመላክ ትንሽ ጠብቅ
+    await asyncio.sleep(60)
+    while True:
+        try:
+            await auto_post_new_movies()
+        except Exception as e:
+            logger.error(f"auto_post_loop error: {e}")
+        await asyncio.sleep(AUTO_POST_INTERVAL_HOURS * 3600)
+
+
 # ==================== ADMIN TEXT COMMANDS (backup, still work) ====================
 
 @dp.message(Command("stats"))
@@ -562,9 +874,12 @@ async def set_menu_button():
 async def main():
     if not MONGO_URI:
         logger.warning("MONGO_URI is not set! Set it in Railway environment variables.")
+    if not TMDB_API_KEY:
+        logger.warning("TMDB_API_KEY is not set — auto-posting new movies will be disabled.")
     await ensure_settings()
     await start_web_server()
     await set_menu_button()
+    asyncio.create_task(auto_post_loop())
     logger.info("Bot started!")
     await dp.start_polling(bot)
 
