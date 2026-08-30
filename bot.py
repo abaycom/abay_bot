@@ -57,6 +57,8 @@ DEFAULT_AD_CONFIG = {
 DEFAULT_FORCE_JOIN = {
     "enabled": False,
     "channel_username": "",   # e.g. "nilo_cinema_channel" (no @)
+    "youtube_url": "",        # optional, unverified "also follow us" link
+    "tiktok_url": "",         # optional, unverified "also follow us" link
 }
 
 
@@ -170,6 +172,38 @@ async def total_referrals() -> int:
     return result[0]["total"] if result else 0
 
 
+# ==================== MULTI-MEDIA MESSAGE COPYING ====================
+
+async def copy_message_to_chat(source: types.Message, chat_id: int, prefix: str = ""):
+    """Sends whatever the admin sent (text, photo, video, document, audio, voice, animation)
+    to a single chat, preserving the media and adding an optional caption prefix."""
+    caption = ((source.caption or "") if source.caption else (source.text or ""))
+    full_caption = f"{prefix}{caption}" if prefix else caption
+
+    if source.photo:
+        await bot.send_photo(chat_id, photo=source.photo[-1].file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+    elif source.video:
+        await bot.send_video(chat_id, video=source.video.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+    elif source.animation:
+        await bot.send_animation(chat_id, animation=source.animation.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+    elif source.document:
+        await bot.send_document(chat_id, document=source.document.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+    elif source.audio:
+        await bot.send_audio(chat_id, audio=source.audio.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+    elif source.voice:
+        await bot.send_voice(chat_id, voice=source.voice.file_id, caption=full_caption or None, parse_mode=ParseMode.MARKDOWN)
+    else:
+        text = full_caption or "(empty message)"
+        await bot.send_message(chat_id, text, parse_mode=ParseMode.MARKDOWN)
+
+
+def has_sendable_content(message: types.Message) -> bool:
+    return bool(
+        message.text or message.photo or message.video or message.animation
+        or message.document or message.audio or message.voice
+    )
+
+
 # ==================== GROUPS / CHANNELS ====================
 
 async def upsert_group(chat: types.Chat):
@@ -220,22 +254,33 @@ async def user_has_joined_channel(user_id: int, channel_username: str) -> bool:
         return True
 
 
-def force_join_keyboard(channel_username: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📢 Join Channel", url=f"https://t.me/{channel_username}")],
-        [InlineKeyboardButton(text="✅ I've Joined", callback_data="check_join")],
-    ])
+def force_join_keyboard(fj: dict) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text="📢 Join Channel", url=f"https://t.me/{fj['channel_username']}")]]
+    # YouTube/TikTok ማረጋገጫ ለ Telegram bot ፈጽሞ የማይቻል ስለሆነ (bot API ላይ
+    # የለም)፣ እነዚህ ኦፕሽናል honor-system ቁልፎች ብቻ ናቸው - access አይገድቡም።
+    extra = []
+    if fj.get("youtube_url"):
+        extra.append(InlineKeyboardButton(text="🔴 YouTube", url=fj["youtube_url"]))
+    if fj.get("tiktok_url"):
+        extra.append(InlineKeyboardButton(text="🎵 TikTok", url=fj["tiktok_url"]))
+    if extra:
+        rows.append(extra)
+    rows.append([InlineKeyboardButton(text="✅ I've Joined", callback_data="check_join")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 # ==================== INITIALIZE BOT ====================
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+BOT_USERNAME = ""  # main() ውስጥ በ startup ይሞላል
 
 
 class AdminStates(StatesGroup):
     waiting_broadcast = State()
     waiting_group_post = State()
     waiting_force_join_channel = State()
+    waiting_youtube_url = State()
+    waiting_tiktok_url = State()
 
 
 # ==================== WEB SERVER (SERVES INDEX.HTML) ====================
@@ -263,6 +308,8 @@ def user_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🎬 Open Cinema Hub", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="👥 Invite Friends", callback_data="invite")],
         [InlineKeyboardButton(text="📊 My Statistics", callback_data="my_stats")],
+        [InlineKeyboardButton(text="➕ Add to Group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true"),
+         InlineKeyboardButton(text="➕ Add to Channel", url=f"https://t.me/{BOT_USERNAME}?startchannel=true")],
     ])
 
 
@@ -271,6 +318,8 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🎬 Open Cinema Hub", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="👥 Invite Friends", callback_data="invite")],
         [InlineKeyboardButton(text="📊 My Statistics", callback_data="my_stats")],
+        [InlineKeyboardButton(text="➕ Add to Group", url=f"https://t.me/{BOT_USERNAME}?startgroup=true"),
+         InlineKeyboardButton(text="➕ Add to Channel", url=f"https://t.me/{BOT_USERNAME}?startchannel=true")],
         [InlineKeyboardButton(text="🛠 Admin Panel", callback_data="admin_panel")],
     ])
 
@@ -289,9 +338,13 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
 
 def force_join_admin_keyboard(fj: dict) -> InlineKeyboardMarkup:
     status = "✅ ON" if fj.get("enabled") else "❌ OFF"
+    yt_status = "✅ Set" if fj.get("youtube_url") else "➕ Add"
+    tt_status = "✅ Set" if fj.get("tiktok_url") else "➕ Add"
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"Force Join: {status}", callback_data="forcejoin_toggle")],
         [InlineKeyboardButton(text="✏️ Set Channel Username", callback_data="forcejoin_set")],
+        [InlineKeyboardButton(text=f"🔴 YouTube link: {yt_status}", callback_data="forcejoin_set_youtube")],
+        [InlineKeyboardButton(text=f"🎵 TikTok link: {tt_status}", callback_data="forcejoin_set_tiktok")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")],
     ])
 
@@ -348,16 +401,19 @@ async def cmd_start(message: types.Message):
     user = message.from_user
     user_id = user.id
 
-    fj = await get_force_join()
-    if fj.get("enabled") and fj.get("channel_username"):
-        joined = await user_has_joined_channel(user_id, fj["channel_username"])
-        if not joined:
-            await message.answer(
-                "🔒 *Join our channel first*\n\nTo use Nilo Cinema, please join our channel, then tap \"I've Joined\".",
-                reply_markup=force_join_keyboard(fj["channel_username"]),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
+    # Admins ራሳቸው force-join gate ውስጥ አይገቡም - አለበለዚያ config ያደረገው admin
+    # ራሱ ውጭ ተቆልፎ (stuck ሆኖ) ወደ bot መግባት አይችልም።
+    if not is_admin(user_id):
+        fj = await get_force_join()
+        if fj.get("enabled") and fj.get("channel_username"):
+            joined = await user_has_joined_channel(user_id, fj["channel_username"])
+            if not joined:
+                await message.answer(
+                    "🔒 *Join our channel first*\n\nTo use Nilo Cinema, please join our channel, then tap \"I've Joined\".",
+                    reply_markup=force_join_keyboard(fj),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
 
     args = message.text.split()
     referrer_id = None
@@ -380,7 +436,13 @@ async def callback_check_join(callback: types.CallbackQuery):
     if fj.get("enabled") and fj.get("channel_username"):
         joined = await user_has_joined_channel(user.id, fj["channel_username"])
         if not joined:
-            await callback.answer("❌ You haven't joined the channel yet.", show_alert=True)
+            # Telegram አንዳንድ ጊዜ member status update ላይ 1-2 ሰከንድ delay
+            # ስላለው (ገና ከተቀላቀሉ በኋላ ወዲያውኑ ቢፈትሹ)፣ አንድ ጊዜ ትንሽ ጠብቀን
+            # እንደገና እንፈትሻለን ከ "stuck" experience ለማስቀረት።
+            await asyncio.sleep(1.5)
+            joined = await user_has_joined_channel(user.id, fj["channel_username"])
+        if not joined:
+            await callback.answer("❌ You haven't joined the channel yet. Join, then tap again.", show_alert=True)
             return
 
     welcome_text = await process_new_user_and_welcome(user, None)
@@ -527,7 +589,8 @@ async def callback_admin_broadcast(callback: types.CallbackQuery, state: FSMCont
     await state.set_state(AdminStates.waiting_broadcast)
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
     await callback.message.edit_text(
-        "📢 *Broadcast*\n\nSend the message you want to broadcast to all users as your next message.",
+        "📢 *Broadcast*\n\nSend text, a photo, video, or file (with optional caption) — "
+        "it will be broadcast to all users exactly as sent.",
         reply_markup=kb, parse_mode=ParseMode.MARKDOWN
     )
     await callback.answer()
@@ -540,8 +603,7 @@ async def process_broadcast(message: types.Message, state: FSMContext):
         return
 
     await state.clear()
-    broadcast_text = message.text or ""
-    if not broadcast_text.strip():
+    if not has_sendable_content(message):
         await message.answer("❌ Empty message, broadcast cancelled.")
         return
 
@@ -549,7 +611,7 @@ async def process_broadcast(message: types.Message, state: FSMContext):
     cursor = users_col.find({}, {"_id": 1})
     async for u in cursor:
         try:
-            await bot.send_message(u["_id"], f"📢 *Announcement*\n\n{broadcast_text}", parse_mode=ParseMode.MARKDOWN)
+            await copy_message_to_chat(message, u["_id"], prefix="📢 *Announcement*\n\n")
             sent += 1
             await asyncio.sleep(0.05)
         except Exception as e:
@@ -604,7 +666,7 @@ async def callback_admin_group_post(callback: types.CallbackQuery, state: FSMCon
     await callback.message.edit_text(
         f"📣 *Post to Groups/Channels*\n\n"
         f"Bot is currently added to {total_groups} group(s)/channel(s).\n\n"
-        f"Send the text (or a photo with caption) you want posted there as your next message.",
+        f"Send text, a photo, video, or file (with optional caption) as your next message.",
         reply_markup=kb, parse_mode=ParseMode.MARKDOWN
     )
     await callback.answer()
@@ -617,14 +679,15 @@ async def process_group_post(message: types.Message, state: FSMContext):
         return
     await state.clear()
 
+    if not has_sendable_content(message):
+        await message.answer("❌ Empty message, post cancelled.")
+        return
+
     sent, failed = 0, 0
     cursor = groups_col.find({}, {"_id": 1})
     async for g in cursor:
         try:
-            if message.photo:
-                await bot.send_photo(g["_id"], photo=message.photo[-1].file_id, caption=message.caption or "", parse_mode=ParseMode.MARKDOWN)
-            else:
-                await bot.send_message(g["_id"], message.text or "", parse_mode=ParseMode.MARKDOWN)
+            await copy_message_to_chat(message, g["_id"])
             sent += 1
             await asyncio.sleep(0.05)
         except Exception as e:
@@ -695,6 +758,66 @@ async def process_forcejoin_channel(message: types.Message, state: FSMContext):
         return
     await update_force_join({"channel_username": username})
     await message.answer(f"✅ Force-join channel set to @{username}")
+
+
+@dp.callback_query(F.data == "forcejoin_set_youtube")
+async def callback_forcejoin_set_youtube(callback: types.CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+    await state.set_state(AdminStates.waiting_youtube_url)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_forcejoin")]])
+    await callback.message.edit_text(
+        "🔴 Send your full YouTube channel URL.\n\n"
+        "⚠️ *Note:* Telegram bots cannot verify YouTube subscriptions — "
+        "this button is shown as an optional \"also follow us\" link and does not block access.",
+        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+    )
+    await callback.answer()
+
+
+@dp.message(AdminStates.waiting_youtube_url)
+async def process_youtube_url(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        return
+    await state.clear()
+    url = (message.text or "").strip()
+    if not url.startswith("http"):
+        await message.answer("❌ Invalid URL.")
+        return
+    await update_force_join({"youtube_url": url})
+    await message.answer("✅ YouTube link saved.")
+
+
+@dp.callback_query(F.data == "forcejoin_set_tiktok")
+async def callback_forcejoin_set_tiktok(callback: types.CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+    await state.set_state(AdminStates.waiting_tiktok_url)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_forcejoin")]])
+    await callback.message.edit_text(
+        "🎵 Send your full TikTok profile URL.\n\n"
+        "⚠️ *Note:* TikTok has no public API for verifying follows — "
+        "this button is shown as an optional \"also follow us\" link and does not block access.",
+        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+    )
+    await callback.answer()
+
+
+@dp.message(AdminStates.waiting_tiktok_url)
+async def process_tiktok_url(message: types.Message, state: FSMContext):
+    if not is_admin(message.from_user.id):
+        await state.clear()
+        return
+    await state.clear()
+    url = (message.text or "").strip()
+    if not url.startswith("http"):
+        await message.answer("❌ Invalid URL.")
+        return
+    await update_force_join({"tiktok_url": url})
+    await message.answer("✅ TikTok link saved.")
 
 
 # ==================== GROUP/CHANNEL MEMBERSHIP TRACKING ====================
@@ -805,24 +928,14 @@ async def cmd_stats(message: types.Message):
 
 
 @dp.message(Command("broadcast"))
-async def cmd_broadcast(message: types.Message):
+async def cmd_broadcast_hint(message: types.Message):
     if not is_admin(message.from_user.id):
         return
-    broadcast_text = message.text.replace("/broadcast", "").strip()
-    if not broadcast_text:
-        await message.answer("❌ Usage: /broadcast <message>")
-        return
-    sent, failed = 0, 0
-    cursor = users_col.find({}, {"_id": 1})
-    async for u in cursor:
-        try:
-            await bot.send_message(u["_id"], f"📢 *Announcement*\n\n{broadcast_text}", parse_mode=ParseMode.MARKDOWN)
-            sent += 1
-            await asyncio.sleep(0.05)
-        except Exception as e:
-            failed += 1
-            logger.error(f"Failed to send to {u['_id']}: {e}")
-    await message.answer(f"✅ Sent: {sent}\n❌ Failed: {failed}")
+    await message.answer(
+        "📢 Use the *Admin Panel → Broadcast to Users* button instead — "
+        "it now supports text, photos, videos, and files.",
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 
 # ==================== WEB APP DATA HANDLER ====================
@@ -872,11 +985,14 @@ async def set_menu_button():
 # ==================== MAIN ====================
 
 async def main():
+    global BOT_USERNAME
     if not MONGO_URI:
         logger.warning("MONGO_URI is not set! Set it in Railway environment variables.")
     if not TMDB_API_KEY:
         logger.warning("TMDB_API_KEY is not set — auto-posting new movies will be disabled.")
     await ensure_settings()
+    me = await bot.get_me()
+    BOT_USERNAME = me.username
     await start_web_server()
     await set_menu_button()
     asyncio.create_task(auto_post_loop())
