@@ -154,7 +154,8 @@
 
         .categories {
             display: flex; gap: 8px; padding: 12px 16px;
-            overflow-x: auto; scrollbar-width: none; margin-top: var(--content-top-offset, 90px);
+            overflow-x: auto; scrollbar-width: none;
+            margin-top: calc(90px + var(--tg-safe-top, 0px));
         }
         .categories::-webkit-scrollbar { display: none; }
         .category-btn {
@@ -276,7 +277,7 @@
         .video-wrapper iframe { width: 100%; height: 100%; border: none; }
         .player-modal.fs-header-hidden .player-header { display: none; }
         .fs-exit-btn {
-            position: fixed; top: 14px; right: 14px; z-index: 9999;
+            position: fixed; top: 14px; left: 14px; z-index: 9999;
             width: 42px; height: 42px; border-radius: 50%;
             background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.3); color: white;
             display: none; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
@@ -553,21 +554,6 @@
             tg.onEvent('contentSafeAreaChanged', applySafeArea);
         }
         window.addEventListener('resize', applySafeArea);
-
-        // Header ትክክለኛ ቁመቱን ሁልጊዜ (safe-area ሲቀየር፣ font ሲጫን፣ ስክሪን ሲሽከረከር)
-        // በራሱ እየተከታተለ categories bar ከስሩ በትክክል እንዲቀመጥ ResizeObserver እንጠቀማለን -
-        // ይህ ከ timing-based መለኪያ ይልቅ ሁልጊዜ ትክክለኛ ውጤት ይሰጣል።
-        const headerElForObserve = document.querySelector('.header');
-        if (headerElForObserve && window.ResizeObserver) {
-            const headerResizeObserver = new ResizeObserver(() => {
-                // entry.contentRect padding/border አያካትትም - ስለዚህ ትክክለኛውን
-                // ሙሉ ቁመት (padding/border ጨምሮ) በቀጥታ ከ offsetHeight እናገኛለን
-                document.documentElement.style.setProperty('--content-top-offset', headerElForObserve.offsetHeight + 'px');
-            });
-            headerResizeObserver.observe(headerElForObserve);
-        } else if (headerElForObserve) {
-            document.documentElement.style.setProperty('--content-top-offset', headerElForObserve.offsetHeight + 'px');
-        }
 
         function initUser() {
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
