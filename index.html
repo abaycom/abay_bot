@@ -25,6 +25,7 @@
             --text-muted: #6b6b7b;
             --border: #2a2a3e;
             --gold: #ffd700;
+            --tg-safe-top: 0px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -76,8 +77,9 @@
             background: rgba(10, 10, 15, 0.95);
             backdrop-filter: blur(20px);
             z-index: 100;
-            padding: 12px 16px;
+            padding: calc(12px + var(--tg-safe-top, 0px)) 16px 12px;
             border-bottom: 1px solid var(--border);
+            transition: padding-top 0.2s ease;
         }
         .header-top {
             display: flex;
@@ -152,7 +154,7 @@
 
         .categories {
             display: flex; gap: 8px; padding: 12px 16px;
-            overflow-x: auto; scrollbar-width: none; margin-top: 90px;
+            overflow-x: auto; scrollbar-width: none; margin-top: var(--content-top-offset, 90px);
         }
         .categories::-webkit-scrollbar { display: none; }
         .category-btn {
@@ -531,6 +533,30 @@
                 if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
             }
         } catch (e) { /* fullscreen ካልተደገፈ ችላ እንለዋለን */ }
+
+        // Fullscreen mode ውስጥ Telegram የራሱን (Close/▾/⋮) control bar ከላይ
+        // ስለሚጨምር፣ ያንን ቦታ (safe area) ለ header padding-top እንመድባለን፣
+        // ካልሆነ የኛ header ከ Telegram's controls ጋር overlap ያደርጋል።
+        function applySafeArea() {
+            const inset = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top)
+                ? tg.contentSafeAreaInset.top
+                : (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
+            document.documentElement.style.setProperty('--tg-safe-top', inset + 'px');
+            // Header ትክክለኛ ቁመቱን ካሰላ በኋላ categories bar ከስሩ በትክክል እንዲቀመጥ እናደርጋለን
+            requestAnimationFrame(() => {
+                const headerEl = document.querySelector('.header');
+                if (headerEl) {
+                    document.documentElement.style.setProperty('--content-top-offset', headerEl.offsetHeight + 'px');
+                }
+            });
+        }
+        applySafeArea();
+        if (tg.onEvent) {
+            tg.onEvent('fullscreenChanged', applySafeArea);
+            tg.onEvent('safeAreaChanged', applySafeArea);
+            tg.onEvent('contentSafeAreaChanged', applySafeArea);
+        }
+        window.addEventListener('resize', applySafeArea);
 
         function initUser() {
             if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
