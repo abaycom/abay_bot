@@ -28,7 +28,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-telegram-api.up.railway.app/")
 PORT = int(os.getenv("PORT", 8080))
 MONGO_URI = os.getenv("MONGO_URI", "")          # e.g. mongodb+srv://user:pass@cluster.mongodb.net
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "nilo_cinema")
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "f519e4673f7652685cfc57630b824606")
+TMDB_API_KEY = os.getenv("TMDB_API_KEY", "")
 AUTO_POST_INTERVAL_HOURS = float(os.getenv("AUTO_POST_INTERVAL_HOURS", "6"))
 AUTO_POST_MAX_PER_RUN = int(os.getenv("AUTO_POST_MAX_PER_RUN", "3"))
 
@@ -525,15 +525,29 @@ async def cmd_start(message: types.Message):
 
     args = message.text.split()
     referrer_id = None
-    if len(args) > 1 and args[1].startswith("ref_"):
-        try:
-            referrer_id = int(args[1].replace("ref_", ""))
-        except ValueError:
-            referrer_id = None
+    deep_link_param = None
+    if len(args) > 1:
+        param = args[1]
+        if param.startswith("ref_"):
+            try:
+                referrer_id = int(param.replace("ref_", ""))
+            except ValueError:
+                referrer_id = None
+        elif param.startswith("movie_") or param.startswith("tv_") or param == "open_app":
+            deep_link_param = param
 
     welcome_text = await process_new_user_and_welcome(user, referrer_id)
-    keyboard = admin_menu_keyboard() if is_admin(user_id) else user_menu_keyboard()
-    await message.answer(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+
+    if deep_link_param and deep_link_param != "open_app":
+        media_type, tmdb_id = deep_link_param.split("_", 1)
+        app_url = f"{WEBAPP_URL}?movie={tmdb_id}&type={media_type}"
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="▶️ Open in Nilo Cinema", web_app=WebAppInfo(url=app_url))]
+        ])
+        await message.answer("🎬 Tap below to open it in the app:", reply_markup=keyboard)
+    else:
+        keyboard = admin_menu_keyboard() if is_admin(user_id) else user_menu_keyboard()
+        await message.answer(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
 
 
 @dp.callback_query(F.data == "check_join")
@@ -745,8 +759,11 @@ async def callback_button_choice(callback: types.CallbackQuery, state: FSMContex
 
     reply_markup = None
     if choice == "app":
+        # web_app ቁልፍ groups/channels ውስጥ (private chat ካልሆነ) Telegram
+        # BUTTON_TYPE_INVALID ብሎ ስለሚያግድ፣ ሁልጊዜ ደህንነቱ የተጠበቀ URL deep-link
+        # እንጠቀማለን - ተጠቃሚው ሲነካ ወደ bot ገብቶ Mini App እንዲከፍት ይመራል።
         reply_markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎬 Open Nilo Cinema", web_app=WebAppInfo(url=WEBAPP_URL))]
+            [InlineKeyboardButton(text="🎬 Open Nilo Cinema", url=f"https://t.me/{BOT_USERNAME}?start=open_app")]
         ])
 
     await callback.answer()
@@ -1107,8 +1124,11 @@ async def handle_inline_query(inline_query: InlineQuery):
     year = (details.get("release_date") or details.get("first_air_date") or "")[:4]
 
     caption = f"🎬 *{title}* ({year})\n⭐ {rating:.1f}/10\n\n{overview}"
+    # web_app ቁልፍ inline query results ውስጥ ጨርሶ አይፈቀድም (Telegram
+    # "BUTTON_TYPE_INVALID" ይላል) - ስለዚህ URL deep-link ብቻ እንጠቀማለን፣
+    # ማንኛውም ሰው (የላከው ብቻ ሳይሆን) ሲነካው ወደ bot ገብቶ Mini App ይከፈትለታል።
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="▶️ Open Mini App", web_app=WebAppInfo(url=f"{WEBAPP_URL}?movie={tmdb_id}&type={media_type}"))]
+        [InlineKeyboardButton(text="▶️ Open Mini App", url=f"https://t.me/{BOT_USERNAME}?start={media_type}_{tmdb_id}")]
     ])
 
     if poster_path:
@@ -1157,8 +1177,9 @@ async def auto_post_new_movies():
         rating = movie.get("vote_average", 0)
 
         caption = f"🎬 *{title}*\n\n⭐ {rating:.1f}/10\n\n{overview}{'...' if len(movie.get('overview', '')) > 200 else ''}"
+        # groups/channels ውስጥ web_app ቁልፍ ስለሚታገድ URL deep-link እንጠቀማለን
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="▶️ Play Now", web_app=WebAppInfo(url=f"{WEBAPP_URL}?movie={tmdb_id}"))]
+            [InlineKeyboardButton(text="▶️ Play Now", url=f"https://t.me/{BOT_USERNAME}?start=movie_{tmdb_id}")]
         ])
 
         for g in groups:
