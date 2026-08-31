@@ -28,7 +28,7 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "https://web-telegram-api.up.railway.app/")
 PORT = int(os.getenv("PORT", 8080))
 MONGO_URI = os.getenv("MONGO_URI", "")          # e.g. mongodb+srv://user:pass@cluster.mongodb.net
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "nilo_cinema")
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "")
+TMDB_API_KEY = os.getenv("TMDB_API_KEY", "f519e4673f7652685cfc57630b824606")
 AUTO_POST_INTERVAL_HOURS = float(os.getenv("AUTO_POST_INTERVAL_HOURS", "6"))
 AUTO_POST_MAX_PER_RUN = int(os.getenv("AUTO_POST_MAX_PER_RUN", "3"))
 
