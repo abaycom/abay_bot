@@ -538,6 +538,34 @@
             }
         } catch (e) { /* fullscreen ካልተደገፈ ችላ እንለዋለን */ }
 
+        // ==================== ONLINE TRACKING (heartbeat) ====================
+        // Bot backend ላይ 'last_active' ን ስለሚያዘምን፣ ተጠቃሚው ፊልም ባይጫወትም እንኳ
+        // Mini App ውስጥ ገብቶ እያለ 'online' ተብሎ በትክክል ይቆጠራል (admin panel ላይ)።
+        async function sendHeartbeat() {
+            if (!tg.initData) return; // Telegram ውጭ (test/preview) ከሆነ ችላ እንለዋለን
+            try {
+                await fetch('/api/heartbeat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+            } catch (e) { /* network ችግር ካለ ችላ እንለዋለን፣ ቀጣዩ heartbeat ይሞክራል */ }
+        }
+        sendHeartbeat();
+        setInterval(sendHeartbeat, 45000); // በየ45 ሰከንድ
+
+        // ፊልም/episode ማጫወት ሲጀምር admin ለ user ስንት ፊልም እንዳየ እንዲያውቅ እንመዘግባለን
+        async function trackPlay() {
+            if (!tg.initData) return;
+            try {
+                await fetch('/api/track-play', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
+                });
+            } catch (e) { /* ችላ እንለዋለን */ }
+        }
+
         // Fullscreen mode ውስጥ Telegram የራሱን (Close/▾/⋮) control bar ከላይ
         // ስለሚጨምር፣ ያንን ቦታ (safe area) ለ header padding-top እንመድባለን፣
         // ካልሆነ የኛ header ከ Telegram's controls ጋር overlap ያደርጋል።
@@ -932,7 +960,7 @@
                                 <span class="rating"><i class="fas fa-star"></i> ${rating}</span>
                                 <span>${year}</span>
                                 <div class="card-actions">
-                                    <span class="share-card-btn" onclick="event.stopPropagation();shareMedia(${item.id}, '${title}')" title="Share">
+                                    <span class="share-card-btn" onclick="event.stopPropagation();shareMedia(${item.id}, '${mediaType}')" title="Share">
                                         <i class="fas fa-share-alt"></i>
                                     </span>
                                     <span class="fav-btn" onclick="event.stopPropagation();toggleFavorite(${item.id})">
@@ -1116,6 +1144,7 @@
             state.totalPlays++;
             localStorage.setItem('nilo_totalPlays', state.totalPlays);
             addToHistory();
+            trackPlay();
         }
 
         function addToHistory() {
@@ -1224,14 +1253,19 @@
             renderContent();
         }
 
-        function shareMedia(id, title) {
-            const botUsername = tg.initDataUnsafe?.bot?.username || 'nilo_cinema_bot';
-            const link = `https://t.me/${botUsername}?start=film_${id}`;
-            const text = `🎬 Check out "${title}" on Nilo Cinema!`;
-            if (tg.openTelegramLink) {
-                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+        function shareMedia(id, mediaType) {
+            // Telegram's Inline Mode ተጠቅመን፣ ፖስተር + "▶️ Open Mini App" ቁልፍ
+            // ያለው ገጽ በቀጥታ ወደ ተመረጠው chat (ጓደኛ/group/channel) እንዲላክ እናደርጋለን።
+            // (tg.switchInlineQuery ተጠቃሚው chat እንዲመርጥ ያደርገዋል፣ ከዚያ
+            // bot's inline handler ፖስተር+ቁልፍ ያለበትን ካርድ በራሱ ይልካል።)
+            const query = `${mediaType}_${id}`;
+            if (tg.switchInlineQuery) {
+                tg.switchInlineQuery(query, ['users', 'groups', 'channels']);
             } else {
-                window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank');
+                // Fallback (Telegram ውጭ ሲፈተሽ ብቻ) - መደበኛ link ብቻ ይጋራል
+                const botUsername = tg.initDataUnsafe?.bot?.username || 'nilo_cinema_bot';
+                const link = `https://t.me/${botUsername}?start=${mediaType}_${id}`;
+                window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}`, '_blank');
             }
         }
 
@@ -1321,9 +1355,21 @@
             if (document.hidden) attemptRefocus();
         });
 
+        // ጓደኛ ከላከው "Open Mini App" ካርድ (ወይም broadcast/auto-post ውስጥ ካለ
+        // ተመሳሳይ ቁልፍ) ገብተው ከሆነ፣ URL ላይ ?movie=ID&type=movie/tv ይኖራል -
+        // ካለ ወዲያውኑ ያንኑ ፊልም/ተከታታይ እንከፍታለን።
+        function openSharedMediaFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const mediaId = params.get('movie');
+            const mediaType = params.get('type') || 'movie';
+            if (mediaId && !isNaN(parseInt(mediaId))) {
+                handleMediaClick(parseInt(mediaId), mediaType);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             initUser();
-            loadMovies();
+            loadMovies().then(openSharedMediaFromUrl);
         });
     </script>
 </body>
