@@ -2,6 +2,9 @@ import asyncio
 import logging
 import json
 import os
+import hmac
+import hashlib
+from urllib.parse import parse_qsl
 from datetime import datetime, timedelta, timezone
 
 import aiohttp
@@ -10,7 +13,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, MenuButtonWebApp
+from aiogram.types import (
+    InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, MenuButtonWebApp,
+    InlineQuery, InlineQueryResultPhoto, InlineQueryResultArticle, InputTextMessageContent
+)
 from aiogram.enums import ParseMode, ChatMemberStatus, ChatType
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -286,6 +292,101 @@ class AdminStates(StatesGroup):
 
 
 # ==================== WEB SERVER (SERVES INDEX.HTML) ====================
+def validate_init_data(init_data: str) -> dict | None:
+    """Mini App ከላከው tg.initData ውስጥ ትክክለኛ Telegram signature መሆኑን ያረጋግጣል
+    (HMAC-SHA256 ከ bot token ጋር) - ይህ ከሌለ ማንም user_id ፈብርኮ heartbeat/play
+    data መላክ ስለሚችል (fake stats) ግድግዳ ነው።"""
+    try:
+        parsed = dict(parse_qsl(init_data, strict_parsing=True))
+        received_hash = parsed.pop("hash", None)
+        if not received_hash:
+            return None
+        data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
+        secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+        computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(computed_hash, received_hash):
+            return None
+        user_json = parsed.get("user")
+        if not user_json:
+            return None
+        return json.loads(user_json)
+    except Exception as e:
+        logger.error(f"initData validation error: {e}")
+        return None
+
+
+async def heartbeat_upsert_user(tg_user: dict):
+    """Mini App ውስጥ ብቻ የገባ (ጨርሶ /start ያላደረገ) ተጠቃሚ ካለ እንኳ እንመዘግበዋለን።"""
+    user_id = tg_user["id"]
+    await users_col.update_one(
+        {"_id": user_id},
+        {
+            "$set": {
+                "first_name": tg_user.get("first_name"),
+                "last_name": tg_user.get("last_name"),
+                "username": tg_user.get("username"),
+                "last_active": now_iso(),
+            },
+            "$setOnInsert": {
+                "joined": now_iso(),
+                "plays": 0,
+                "ad_views": 0,
+                "referrals": [],
+                "referred_by": None,
+                "is_premium": False,
+            },
+        },
+        upsert=True,
+    )
+
+
+def cors_headers():
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    }
+
+
+async def handle_options(request):
+    return web.Response(headers=cors_headers())
+
+
+async def handle_heartbeat(request):
+    """Mini App ውስጥ ገብቶ ተጠቃሚ ገፆችን እያገላበጠ (ፊልም ሳይጫወት እንኳ) ገባሁ ብሎ
+    በየተወሰነ ጊዜ የሚጠራው endpoint - 'last_active' ን ስለሚያዘምን online-count
+    ትክክለኛ ይሆናል (ከ /start ውጭም)."""
+    try:
+        body = await request.json()
+        user = validate_init_data(body.get("initData", ""))
+        if not user:
+            return web.json_response({"ok": False, "error": "invalid initData"}, status=401, headers=cors_headers())
+        await heartbeat_upsert_user(user)
+        return web.json_response({"ok": True}, headers=cors_headers())
+    except Exception as e:
+        logger.error(f"heartbeat error: {e}")
+        return web.json_response({"ok": False}, status=500, headers=cors_headers())
+
+
+async def handle_track_play(request):
+    """ፊልም/episode ማጫወት ሲጀምር Mini App ከሚጠራው - per-user plays እና
+    total_plays ን ያዘምናል፣ ስለዚህ admin ለ user ስንት ፊልም እንዳየ ማየት ይችላል።"""
+    try:
+        body = await request.json()
+        user = validate_init_data(body.get("initData", ""))
+        if not user:
+            return web.json_response({"ok": False, "error": "invalid initData"}, status=401, headers=cors_headers())
+
+        await heartbeat_upsert_user(user)
+        user_id = user["id"]
+        await users_col.update_one({"_id": user_id}, {"$inc": {"plays": 1}})
+        await inc_stat("total_plays", 1)
+        return web.json_response({"ok": True}, headers=cors_headers())
+    except Exception as e:
+        logger.error(f"track-play error: {e}")
+        return web.json_response({"ok": False}, status=500, headers=cors_headers())
+
+
 async def handle_index(request):
     if os.path.exists("index.html"):
         return web.FileResponse("index.html")
@@ -296,6 +397,10 @@ async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle_index)
     app.router.add_get("/index.html", handle_index)
+    app.router.add_post("/api/heartbeat", handle_heartbeat)
+    app.router.add_post("/api/track-play", handle_track_play)
+    app.router.add_options("/api/heartbeat", handle_options)
+    app.router.add_options("/api/track-play", handle_options)
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -345,6 +450,7 @@ def force_join_admin_keyboard(fj: dict) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"Force Join: {status}", callback_data="forcejoin_toggle")],
         [InlineKeyboardButton(text="✏️ Set Channel Username", callback_data="forcejoin_set")],
+        [InlineKeyboardButton(text="🧪 Test Connection", callback_data="forcejoin_test")],
         [InlineKeyboardButton(text=f"🔴 YouTube link: {yt_status}", callback_data="forcejoin_set_youtube")],
         [InlineKeyboardButton(text=f"🎵 TikTok link: {tt_status}", callback_data="forcejoin_set_tiktok")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")],
@@ -819,6 +925,38 @@ async def callback_forcejoin_set(callback: types.CallbackQuery, state: FSMContex
     await callback.answer()
 
 
+@dp.callback_query(F.data == "forcejoin_test")
+async def callback_forcejoin_test(callback: types.CallbackQuery):
+    """Force-join አለመስራት ላይ ትክክለኛውን ምክንያት ለ admin ግልጽ የሚያደርግ diagnostic።"""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Admins only", show_alert=True)
+        return
+
+    fj = await get_force_join()
+    channel = fj.get("channel_username")
+    if not channel:
+        await callback.answer("⚠️ No channel set yet.", show_alert=True)
+        return
+
+    try:
+        me = await bot.get_me()
+        bot_member = await bot.get_chat_member(f"@{channel}", me.id)
+        if bot_member.status not in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR):
+            await callback.answer(
+                f"❌ Bot is in @{channel} but is NOT an admin there. "
+                f"Force-join cannot verify membership until you make the bot an admin.",
+                show_alert=True
+            )
+            return
+        await callback.answer(f"✅ Bot is admin in @{channel} — force-join should work correctly.", show_alert=True)
+    except Exception as e:
+        await callback.answer(
+            f"❌ Bot cannot access @{channel} at all (not added, or wrong username). "
+            f"Error: {str(e)[:150]}",
+            show_alert=True
+        )
+
+
 @dp.message(AdminStates.waiting_force_join_channel)
 async def process_forcejoin_channel(message: types.Message, state: FSMContext):
     if not is_admin(message.from_user.id):
@@ -925,6 +1063,74 @@ async def fetch_now_playing_movies() -> list:
     except Exception as e:
         logger.error(f"TMDB fetch failed: {e}")
         return []
+
+
+async def fetch_tmdb_details(media_type: str, tmdb_id: int) -> dict | None:
+    """ለ inline-share ካርድ (poster+ርዕስ+ደረጃ) ነጠላ ፊልም/ተከታታይ መረጃ ከ TMDB ያመጣል።"""
+    if not TMDB_API_KEY:
+        return None
+    url = f"https://api.themoviedb.org/3/{media_type}/{tmdb_id}?api_key={TMDB_API_KEY}&language=en-US"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status != 200:
+                    return None
+                return await resp.json()
+    except Exception as e:
+        logger.error(f"TMDB details fetch failed: {e}")
+        return None
+
+
+# ==================== SHARE VIA INLINE MODE ====================
+# Mini App ላይ "Share" ሲነኩ tg.switchInlineQuery("movie_123",...) ይጠራል -
+# ተጠቃሚው chat ሲመርጥ Telegram ይህን handler ይጠራል፣ እኛም ፖስተር+ርዕስ+
+# "▶️ Open Mini App" ቁልፍ ያለበት ካርድ እንመልሳለን። ማስታወሻ: ይህ እንዲሰራ
+# @BotFather ላይ /setinline ለዚህ bot መንቃት አለበት (አንድ ጊዜ ብቻ የሚደረግ ውቅር)።
+@dp.inline_query()
+async def handle_inline_query(inline_query: InlineQuery):
+    query = inline_query.query.strip()
+    parts = query.split("_", 1)
+    if len(parts) != 2 or parts[0] not in ("movie", "tv") or not parts[1].isdigit():
+        await inline_query.answer([], cache_time=1)
+        return
+
+    media_type, tmdb_id = parts[0], int(parts[1])
+    details = await fetch_tmdb_details(media_type, tmdb_id)
+    if not details:
+        await inline_query.answer([], cache_time=1)
+        return
+
+    title = details.get("title") or details.get("name") or "Unknown"
+    overview = (details.get("overview") or "")[:150]
+    poster_path = details.get("poster_path")
+    rating = details.get("vote_average") or 0
+    year = (details.get("release_date") or details.get("first_air_date") or "")[:4]
+
+    caption = f"🎬 *{title}* ({year})\n⭐ {rating:.1f}/10\n\n{overview}"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="▶️ Open Mini App", web_app=WebAppInfo(url=f"{WEBAPP_URL}?movie={tmdb_id}&type={media_type}"))]
+    ])
+
+    if poster_path:
+        photo_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+        result = InlineQueryResultPhoto(
+            id=str(tmdb_id),
+            photo_url=photo_url,
+            thumbnail_url=photo_url,
+            caption=caption,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb,
+        )
+    else:
+        result = InlineQueryResultArticle(
+            id=str(tmdb_id),
+            title=title,
+            description=overview,
+            input_message_content=InputTextMessageContent(message_text=caption, parse_mode=ParseMode.MARKDOWN),
+            reply_markup=kb,
+        )
+
+    await inline_query.answer([result], cache_time=10, is_personal=True)
 
 
 async def auto_post_new_movies():
