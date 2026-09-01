@@ -29,8 +29,8 @@ PORT = int(os.getenv("PORT", 8080))
 MONGO_URI = os.getenv("MONGO_URI", "")          # e.g. mongodb+srv://user:pass@cluster.mongodb.net
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "nilo_cinema")
 TMDB_API_KEY = os.getenv("TMDB_API_KEY", "")
-AUTO_POST_INTERVAL_HOURS = float(os.getenv("AUTO_POST_INTERVAL_HOURS", "6"))
-AUTO_POST_MAX_PER_RUN = int(os.getenv("AUTO_POST_MAX_PER_RUN", "3"))
+AUTO_POST_INTERVAL_HOURS = float(os.getenv("AUTO_POST_INTERVAL_HOURS", "8"))
+AUTO_POST_MAX_PER_RUN = int(os.getenv("AUTO_POST_MAX_PER_RUN", "1"))
 
 # Comma-separated admin IDs in env, e.g. "5049565154,123456789"
 ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "5049565154").split(",") if x.strip()]
