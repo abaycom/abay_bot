@@ -642,8 +642,11 @@ async def callback_admin_panel(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Admins only", show_alert=True)
         return
-    await callback.message.edit_text("🛠 *Admin Panel*", reply_markup=admin_panel_keyboard(), parse_mode=ParseMode.MARKDOWN)
     await callback.answer()
+    try:
+        await callback.message.edit_text("🛠 *Admin Panel*", reply_markup=admin_panel_keyboard(), parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"admin_panel edit failed: {e}")
 
 
 @dp.callback_query(F.data == "admin_stats")
@@ -759,12 +762,21 @@ async def callback_button_choice(callback: types.CallbackQuery, state: FSMContex
 
     reply_markup = None
     if choice == "app":
-        # web_app ቁልፍ groups/channels ውስጥ (private chat ካልሆነ) Telegram
-        # BUTTON_TYPE_INVALID ብሎ ስለሚያግድ፣ ሁልጊዜ ደህንነቱ የተጠበቀ URL deep-link
-        # እንጠቀማለን - ተጠቃሚው ሲነካ ወደ bot ገብቶ Mini App እንዲከፍት ይመራል።
-        reply_markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎬 Open Nilo Cinema", url=f"https://t.me/{BOT_USERNAME}?start=open_app")]
-        ])
+        data = await state.get_data()
+        target = data.get("target", "users")
+        if target == "users":
+            # Broadcast-ው ወደ ራሱ users_col ስለሚላክ (private chat with bot)፣
+            # web_app ቁልፍ በቀጥታ ይፈቀዳል - Mini App በአንድ ጠቅታ ይከፈታል።
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🎬 Open Nilo Cinema", web_app=WebAppInfo(url=WEBAPP_URL))]
+            ])
+        else:
+            # groups/channels ውስጥ web_app ቁልፍ ስለሚታገድ (BUTTON_TYPE_INVALID)
+            # URL deep-link እንጠቀማለን - ተጠቃሚው ሲነካ ወደ bot chat ገብቶ
+            # ከዚያ Open button ያገኛል።
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🎬 Open Nilo Cinema", url=f"https://t.me/{BOT_USERNAME}?start=open_app")]
+            ])
 
     await callback.answer()
     await finish_broadcast_or_post(callback.message, state, reply_markup)
@@ -777,13 +789,31 @@ async def process_button_url(message: types.Message, state: FSMContext):
         return
 
     if not message.text or "|" not in message.text:
-        await message.answer("❌ Wrong format. Use: `Button Text | https://example.com`", parse_mode=ParseMode.MARKDOWN)
+        await message.answer(
+            "❌ Wrong format. Use: `Button Text | link`\n\n"
+            "Accepted link types: `https://...`, `http://...`, `t.me/...`, `@username`, `tg://...`",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
 
     label, url = message.text.split("|", 1)
     label, url = label.strip(), url.strip()
-    if not (url.startswith("http://") or url.startswith("https://")):
-        await message.answer("❌ The link must start with http:// or https://")
+
+    # ማንኛውንም የተለመደ link ቅርጽ እንቀበላለን፣ ካስፈለገ ራሳችን እናስተካክለዋለን
+    if url.startswith("@"):
+        url = f"https://t.me/{url[1:]}"
+    elif url.startswith("t.me/") or url.startswith("www.t.me/"):
+        url = f"https://{url}"
+    elif "://" not in url and "." in url:
+        # ምንም scheme ያልያዘ ግን domain የሚመስል (ለምሳሌ "example.com/page")
+        url = f"https://{url}"
+
+    if "://" not in url:
+        await message.answer(
+            "❌ That doesn't look like a valid link. Examples:\n"
+            "`https://example.com`\n`t.me/nilo_cinema_bot`\n`@nilo_cinema_bot`\n`tg://resolve?domain=nilo_cinema_bot`",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
 
     reply_markup = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=label, url=url)]])
@@ -900,15 +930,18 @@ async def callback_admin_forcejoin(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Admins only", show_alert=True)
         return
+    await callback.answer()
     fj = await get_force_join()
     channel_line = f"@{fj['channel_username']}" if fj.get("channel_username") else "Not set"
-    await callback.message.edit_text(
-        f"🔒 *Force Join Channel*\n\nCurrent channel: {channel_line}\n\n"
-        f"When ON, users must join this channel before using the bot.\n"
-        f"⚠️ The bot must be an *admin* in that channel to verify membership.",
-        reply_markup=force_join_admin_keyboard(fj), parse_mode=ParseMode.MARKDOWN
-    )
-    await callback.answer()
+    try:
+        await callback.message.edit_text(
+            f"🔒 *Force Join Channel*\n\nCurrent channel: {channel_line}\n\n"
+            f"When ON, users must join this channel before using the bot.\n"
+            f"⚠️ The bot must be an *admin* in that channel to verify membership.",
+            reply_markup=force_join_admin_keyboard(fj), parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"admin_forcejoin edit failed: {e}")
 
 
 @dp.callback_query(F.data == "forcejoin_toggle")
@@ -923,8 +956,11 @@ async def callback_forcejoin_toggle(callback: types.CallbackQuery):
     new_val = not fj.get("enabled", False)
     await update_force_join({"enabled": new_val})
     fj["enabled"] = new_val
-    await callback.message.edit_reply_markup(reply_markup=force_join_admin_keyboard(fj))
     await callback.answer(f"Force Join → {'ON' if new_val else 'OFF'}")
+    try:
+        await callback.message.edit_reply_markup(reply_markup=force_join_admin_keyboard(fj))
+    except Exception as e:
+        logger.error(f"forcejoin_toggle edit failed: {e}")
 
 
 @dp.callback_query(F.data == "forcejoin_set")
@@ -933,13 +969,16 @@ async def callback_forcejoin_set(callback: types.CallbackQuery, state: FSMContex
         await callback.answer("⛔ Admins only", show_alert=True)
         return
     await state.set_state(AdminStates.waiting_force_join_channel)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
-    await callback.message.edit_text(
-        "✏️ Send the channel *username* (without @), e.g. `nilo_cinema_channel`.\n\n"
-        "⚠️ The bot must already be an admin of that channel.",
-        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
-    )
     await callback.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
+    try:
+        await callback.message.edit_text(
+            "✏️ Send the channel *username* (without @), e.g. `nilo_cinema_channel`.\n\n"
+            "⚠️ The bot must already be an admin of that channel.",
+            reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"forcejoin_set edit failed: {e}")
 
 
 @dp.callback_query(F.data == "forcejoin_test")
@@ -1066,10 +1105,12 @@ async def on_bot_membership_changed(event: types.ChatMemberUpdated):
 
 # ==================== AUTO-POST NEW MOVIES ====================
 
-async def fetch_now_playing_movies() -> list:
+async def fetch_top_rated_movies() -> list:
+    """'top movie ብቻ' ስለተባለ (አዳዲስ ፊልሞች ቶሎ TMDB ላይ ስለማይጨመሩ)፣ ከ
+    now_playing ይልቅ top_rated ሁልጊዜ በቂ ውጤት ስለሚሰጥ እንጠቀማለን።"""
     if not TMDB_API_KEY:
         return []
-    url = f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}&language=en-US&page=1"
+    url = f"https://api.themoviedb.org/3/movie/top_rated?api_key={TMDB_API_KEY}&language=en-US&page=1"
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
@@ -1154,13 +1195,14 @@ async def handle_inline_query(inline_query: InlineQuery):
 
 
 async def auto_post_new_movies():
-    movies = await fetch_now_playing_movies()
+    movies = await fetch_top_rated_movies()
     if not movies:
         return
 
     groups = await groups_col.find({}, {"_id": 1}).to_list(length=None)
-    if not groups:
-        return  # ምንም group/channel ካልታከለ መልቀቅ ትርጉም የለውም
+    users = await users_col.find({}, {"_id": 1}).to_list(length=None)
+    if not groups and not users:
+        return  # ምንም ተቀባይ ከሌለ መልቀቅ ትርጉም የለውም
 
     posted_count = 0
     for movie in movies:
@@ -1175,26 +1217,39 @@ async def auto_post_new_movies():
         overview = (movie.get("overview") or "")[:200]
         poster_path = movie.get("poster_path")
         rating = movie.get("vote_average", 0)
+        photo_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
 
         caption = f"🎬 *{title}*\n\n⭐ {rating:.1f}/10\n\n{overview}{'...' if len(movie.get('overview', '')) > 200 else ''}"
+
         # groups/channels ውስጥ web_app ቁልፍ ስለሚታገድ URL deep-link እንጠቀማለን
-        kb = InlineKeyboardMarkup(inline_keyboard=[
+        group_kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="▶️ Play Now", url=f"https://t.me/{BOT_USERNAME}?start=movie_{tmdb_id}")]
+        ])
+        # ተመዝጋቢ users ግን ቀድሞ bot-ውን private chat ውስጥ ስላናገሩት web_app
+        # ቁልፍ በቀጥታ መጠቀም እንችላለን - Mini App በአንድ ጠቅታ ይከፈትላቸዋል
+        user_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="▶️ Play Now", web_app=WebAppInfo(url=f"{WEBAPP_URL}?movie={tmdb_id}&type=movie"))]
         ])
 
         for g in groups:
             try:
-                if poster_path:
-                    await bot.send_photo(
-                        g["_id"],
-                        photo=f"https://image.tmdb.org/t/p/w500{poster_path}",
-                        caption=caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN
-                    )
+                if photo_url:
+                    await bot.send_photo(g["_id"], photo=photo_url, caption=caption, reply_markup=group_kb, parse_mode=ParseMode.MARKDOWN)
                 else:
-                    await bot.send_message(g["_id"], caption, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+                    await bot.send_message(g["_id"], caption, reply_markup=group_kb, parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(0.1)
             except Exception as e:
                 logger.error(f"Auto-post failed for group {g['_id']}: {e}")
+
+        for u in users:
+            try:
+                if photo_url:
+                    await bot.send_photo(u["_id"], photo=photo_url, caption=caption, reply_markup=user_kb, parse_mode=ParseMode.MARKDOWN)
+                else:
+                    await bot.send_message(u["_id"], caption, reply_markup=user_kb, parse_mode=ParseMode.MARKDOWN)
+                await asyncio.sleep(0.05)
+            except Exception as e:
+                logger.error(f"Auto-post failed for user {u['_id']}: {e}")
 
         await posted_movies_col.insert_one({"_id": tmdb_id, "title": title, "posted_at": now_iso()})
         posted_count += 1
