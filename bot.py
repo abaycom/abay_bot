@@ -154,6 +154,17 @@ def display_name(u: dict) -> str:
     return name
 
 
+def escape_md(text: str) -> str:
+    """Telegram's legacy Markdown ልዩ ፊደላት (_, *, `, [) ማንኛውም ተጠቃሚ ስም/username
+    ውስጥ ቢኖሩ parse_mode='Markdown' ን ስለሚያፈርሱ (edit_text ላይ silent crash
+    ስለሚያመጡ) ከ Markdown-formatted ጽሁፍ ውስጥ ከማስገባታችን በፊት እናጸዳቸዋለን።"""
+    if not text:
+        return text
+    for ch in ("_", "*", "`", "["):
+        text = text.replace(ch, f"\\{ch}")
+    return text
+
+
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
@@ -474,6 +485,7 @@ def ad_config_keyboard(cfg: dict) -> InlineKeyboardMarkup:
 async def process_new_user_and_welcome(user: types.User, referrer_id: int | None) -> str:
     """Registers/updates the user, notifies referrer if applicable, and returns welcome text."""
     _, is_new = await upsert_user(user, referrer_id)
+    safe_first_name = escape_md(user.first_name or "there")
 
     if is_new and referrer_id and referrer_id != user.id:
         referrer = await users_col.find_one({"_id": referrer_id})
@@ -482,7 +494,7 @@ async def process_new_user_and_welcome(user: types.User, referrer_id: int | None
                 await bot.send_message(
                     referrer_id,
                     f"🎉 *Congratulations!*\n\n"
-                    f"{user.first_name} joined using your link!\n"
+                    f"{safe_first_name} joined using your link!\n"
                     f"You now have {len(referrer.get('referrals', [])) + 1} referrals.",
                     parse_mode=ParseMode.MARKDOWN
                 )
@@ -491,7 +503,7 @@ async def process_new_user_and_welcome(user: types.User, referrer_id: int | None
 
     return f"""🎬 *Welcome to Nilo Cinema!*
 
-Hello {user.first_name}! 👋
+Hello {safe_first_name}! 👋
 
 Watch movies, TV series, and your favorites for free!
 
@@ -569,8 +581,11 @@ async def callback_check_join(callback: types.CallbackQuery):
 
     welcome_text = await process_new_user_and_welcome(user, None)
     keyboard = admin_menu_keyboard() if is_admin(user.id) else user_menu_keyboard()
-    await callback.message.edit_text(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
     await callback.answer("✅ Welcome!")
+    try:
+        await callback.message.edit_text(welcome_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"check_join edit failed: {e}")
 
 
 @dp.callback_query(F.data == "invite")
@@ -596,8 +611,11 @@ Your unique referral link:
 • Total Invited: {referral_count} people
 • Reward: Invite 5 people to get Premium!"""
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
     await callback.answer()
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"invite edit failed: {e}")
 
 
 @dp.callback_query(F.data == "my_stats")
@@ -612,7 +630,7 @@ async def callback_stats(callback: types.CallbackQuery):
     ref_count = len(user.get("referrals", []))
     text = f"""📊 *My Statistics*
 
-👤 Name: {display_name(user)}
+👤 Name: {escape_md(display_name(user))}
 📅 Joined: {user.get('joined', 'N/A')[:10]}
 🎬 Total Plays: {user.get('plays', 0)}
 👥 Invited: {ref_count} people
@@ -620,19 +638,25 @@ async def callback_stats(callback: types.CallbackQuery):
 
 🏆 *Rank:* {get_user_rank(ref_count)}"""
 
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
     await callback.answer()
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"my_stats edit failed: {e}")
 
 
 @dp.callback_query(F.data == "back_to_menu")
 async def callback_back(callback: types.CallbackQuery):
     keyboard = admin_menu_keyboard() if is_admin(callback.from_user.id) else user_menu_keyboard()
-    await callback.message.edit_text(
-        "🎬 *Nilo Cinema*\n\nWatch movies for free! 👇",
-        reply_markup=keyboard,
-        parse_mode=ParseMode.MARKDOWN
-    )
     await callback.answer()
+    try:
+        await callback.message.edit_text(
+            "🎬 *Nilo Cinema*\n\nWatch movies for free! 👇",
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"back_to_menu edit failed: {e}")
 
 
 # ==================== ADMIN PANEL (inline, admin-only) ====================
@@ -654,6 +678,7 @@ async def callback_admin_stats(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Admins only", show_alert=True)
         return
+    await callback.answer()
 
     total = await count_users()
     online = await count_online()
@@ -677,8 +702,10 @@ async def callback_admin_stats(callback: types.CallbackQuery):
 • Bot: {'✅' if cfg['bot_ad_enabled'] else '❌'}"""
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")]])
-    await callback.message.edit_text(text, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
-    await callback.answer()
+    try:
+        await callback.message.edit_text(text, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"admin_stats edit failed: {e}")
 
 
 @dp.callback_query(F.data == "admin_users")
@@ -686,6 +713,7 @@ async def callback_admin_users(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Admins only", show_alert=True)
         return
+    await callback.answer()  # ወዲያውኑ ምላሽ እንሰጣለን - ከታች ያለው ቢሰበር እንኳ ቁልፉ "loading" ሆኖ አይቀርም
 
     total = await count_users()
     cutoff_online = (datetime.now(timezone.utc) - timedelta(minutes=ONLINE_WINDOW_MINUTES)).isoformat()
@@ -695,15 +723,21 @@ async def callback_admin_users(callback: types.CallbackQuery):
     async for u in cursor:
         status = "🟢" if u.get("last_active", "") >= cutoff_online else "⚪"
         uname = f"@{u['username']}" if u.get("username") else "no username"
-        lines.append(f"{status} {display_name(u)} ({uname}) — Plays: {u.get('plays', 0)}")
+        # username/first_name ውስጥ Markdown-special ፊደላት (_, *, [, ] ወዘተ) ቢኖሩ
+        # Telegram's Markdown parser ይሰብረዋል (ለምሳሌ "john_doe" የሚል username) -
+        # ስለዚህ ይህን ዝርዝር plain text (ያለ Markdown parse_mode) እንልካለን።
+        name = display_name(u)
+        lines.append(f"{status} {name} ({uname}) — Plays: {u.get('plays', 0)}")
 
-    text = "👥 *Registered Users* (most recently active 20)\n\n" + ("\n".join(lines) if lines else "No users yet.")
+    text = "👥 Registered Users (most recently active 20)\n\n" + ("\n".join(lines) if lines else "No users yet.")
     if total > 20:
         text += f"\n\n...and {total - 20} more (total {total})"
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Back", callback_data="admin_panel")]])
-    await callback.message.edit_text(text, reply_markup=kb, parse_mode=ParseMode.MARKDOWN)
-    await callback.answer()
+    try:
+        await callback.message.edit_text(text, reply_markup=kb)  # parse_mode የለም - plain text
+    except Exception as e:
+        logger.error(f"admin_users edit failed: {e}")
 
 
 @dp.callback_query(F.data == "admin_broadcast")
@@ -712,13 +746,16 @@ async def callback_admin_broadcast(callback: types.CallbackQuery, state: FSMCont
         await callback.answer("⛔ Admins only", show_alert=True)
         return
     await state.set_state(AdminStates.waiting_broadcast)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
-    await callback.message.edit_text(
-        "📢 *Broadcast*\n\nSend text, a photo, video, or file (with optional caption) — "
-        "it will be broadcast to all users exactly as sent.",
-        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
-    )
     await callback.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
+    try:
+        await callback.message.edit_text(
+            "📢 *Broadcast*\n\nSend text, a photo, video, or file (with optional caption) — "
+            "it will be broadcast to all users exactly as sent.",
+            reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"admin_broadcast edit failed: {e}")
 
 
 @dp.message(AdminStates.waiting_broadcast)
@@ -752,12 +789,15 @@ async def callback_button_choice(callback: types.CallbackQuery, state: FSMContex
 
     if choice == "custom":
         await state.set_state(AdminStates.waiting_button_url)
-        await callback.message.edit_text(
-            "🔗 Send the button in this format:\n\n`Button Text | https://example.com`\n\n"
-            "Example:\n`▶️ Watch Now | https://t.me/nilo_cinema_bot`",
-            parse_mode=ParseMode.MARKDOWN
-        )
         await callback.answer()
+        try:
+            await callback.message.edit_text(
+                "🔗 Send the button in this format:\n\n`Button Text | https://example.com`\n\n"
+                "Example:\n`▶️ Watch Now | https://t.me/nilo_cinema_bot`",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.error(f"btn_choice_custom edit failed: {e}")
         return
 
     reply_markup = None
@@ -856,10 +896,13 @@ async def callback_admin_adcfg(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
         await callback.answer("⛔ Admins only", show_alert=True)
         return
+    await callback.answer()
     settings = await get_settings()
     cfg = settings.get("ad_config", DEFAULT_AD_CONFIG)
-    await callback.message.edit_text("⚙️ *Ad Configuration*\n\nTap to toggle:", reply_markup=ad_config_keyboard(cfg), parse_mode=ParseMode.MARKDOWN)
-    await callback.answer()
+    try:
+        await callback.message.edit_text("⚙️ *Ad Configuration*\n\nTap to toggle:", reply_markup=ad_config_keyboard(cfg), parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"admin_adcfg edit failed: {e}")
 
 
 @dp.callback_query(F.data.startswith("adcfg_toggle_"))
@@ -878,9 +921,12 @@ async def callback_adcfg_toggle(callback: types.CallbackQuery):
     cfg = settings.get("ad_config", DEFAULT_AD_CONFIG)
     cfg[field] = not cfg.get(field, False)
     await update_ad_config({field: cfg[field]})
-
-    await callback.message.edit_reply_markup(reply_markup=ad_config_keyboard(cfg))
     await callback.answer(f"{field} → {'ON' if cfg[field] else 'OFF'}")
+
+    try:
+        await callback.message.edit_reply_markup(reply_markup=ad_config_keyboard(cfg))
+    except Exception as e:
+        logger.error(f"adcfg_toggle edit failed: {e}")
 
 
 # ==================== GROUP/CHANNEL POSTING (admin) ====================
@@ -892,14 +938,17 @@ async def callback_admin_group_post(callback: types.CallbackQuery, state: FSMCon
         return
     total_groups = await count_groups()
     await state.set_state(AdminStates.waiting_group_post)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
-    await callback.message.edit_text(
-        f"📣 *Post to Groups/Channels*\n\n"
-        f"Bot is currently added to {total_groups} group(s)/channel(s).\n\n"
-        f"Send text, a photo, video, or file (with optional caption) as your next message.",
-        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
-    )
     await callback.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_panel")]])
+    try:
+        await callback.message.edit_text(
+            f"📣 *Post to Groups/Channels*\n\n"
+            f"Bot is currently added to {total_groups} group(s)/channel(s).\n\n"
+            f"Send text, a photo, video, or file (with optional caption) as your next message.",
+            reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"admin_group_post edit failed: {e}")
 
 
 @dp.message(AdminStates.waiting_group_post)
@@ -1033,14 +1082,17 @@ async def callback_forcejoin_set_youtube(callback: types.CallbackQuery, state: F
         await callback.answer("⛔ Admins only", show_alert=True)
         return
     await state.set_state(AdminStates.waiting_youtube_url)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_forcejoin")]])
-    await callback.message.edit_text(
-        "🔴 Send your full YouTube channel URL.\n\n"
-        "⚠️ *Note:* Telegram bots cannot verify YouTube subscriptions — "
-        "this button is shown as an optional \"also follow us\" link and does not block access.",
-        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
-    )
     await callback.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_forcejoin")]])
+    try:
+        await callback.message.edit_text(
+            "🔴 Send your full YouTube channel URL.\n\n"
+            "⚠️ *Note:* Telegram bots cannot verify YouTube subscriptions — "
+            "this button is shown as an optional \"also follow us\" link and does not block access.",
+            reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"forcejoin_set_youtube edit failed: {e}")
 
 
 @dp.message(AdminStates.waiting_youtube_url)
@@ -1063,14 +1115,17 @@ async def callback_forcejoin_set_tiktok(callback: types.CallbackQuery, state: FS
         await callback.answer("⛔ Admins only", show_alert=True)
         return
     await state.set_state(AdminStates.waiting_tiktok_url)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_forcejoin")]])
-    await callback.message.edit_text(
-        "🎵 Send your full TikTok profile URL.\n\n"
-        "⚠️ *Note:* TikTok has no public API for verifying follows — "
-        "this button is shown as an optional \"also follow us\" link and does not block access.",
-        reply_markup=kb, parse_mode=ParseMode.MARKDOWN
-    )
     await callback.answer()
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="admin_forcejoin")]])
+    try:
+        await callback.message.edit_text(
+            "🎵 Send your full TikTok profile URL.\n\n"
+            "⚠️ *Note:* TikTok has no public API for verifying follows — "
+            "this button is shown as an optional \"also follow us\" link and does not block access.",
+            reply_markup=kb, parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"forcejoin_set_tiktok edit failed: {e}")
 
 
 @dp.message(AdminStates.waiting_tiktok_url)
